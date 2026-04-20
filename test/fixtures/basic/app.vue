@@ -1,7 +1,11 @@
 <template>
   <div>
-    <div id="composable-result">{{ composableResult }}</div>
-    <div id="injection-result">{{ injectionResult }}</div>
+    <div id="composable-result">
+      {{ composableResult }}
+    </div>
+    <div id="injection-result">
+      {{ injectionResult }}
+    </div>
   </div>
 </template>
 
@@ -21,4 +25,3 @@ const injectionResult = injectionSchema.safeParse({ version: 4 }).success
   ? 'injection-ok'
   : 'injection-fail'
 </script>
-

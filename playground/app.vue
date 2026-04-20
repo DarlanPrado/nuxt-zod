@@ -1,7 +1,9 @@
 <template>
   <main class="page">
     <header class="hero">
-      <p class="eyebrow">nuxt-zod playground</p>
+      <p class="eyebrow">
+        nuxt-zod playground
+      </p>
       <h1>Hands-on Zod forms</h1>
       <p>
         Test real validation flows with <strong>useZod()</strong> and <strong>$zod</strong>.
@@ -11,32 +13,72 @@
     <section class="grid">
       <article class="card">
         <h2>Account form (useZod)</h2>
-        <form class="form" @submit.prevent="submitAccount">
+        <form
+          class="form"
+          @submit.prevent="submitAccount"
+        >
           <label>
             Email
-            <input v-model.trim="accountForm.email" type="email" placeholder="you@example.com">
+            <input
+              v-model.trim="accountForm.email"
+              type="email"
+              placeholder="you@example.com"
+            >
           </label>
-          <p v-if="accountErrors.email" class="error">{{ accountErrors.email }}</p>
+          <p
+            v-if="accountErrors.email"
+            class="error"
+          >
+            {{ accountErrors.email }}
+          </p>
 
           <label>
             Password
-            <input v-model="accountForm.password" type="password" placeholder="At least 8 chars">
+            <input
+              v-model="accountForm.password"
+              type="password"
+              placeholder="At least 8 chars"
+            >
           </label>
-          <p v-if="accountErrors.password" class="error">{{ accountErrors.password }}</p>
+          <p
+            v-if="accountErrors.password"
+            class="error"
+          >
+            {{ accountErrors.password }}
+          </p>
 
           <label>
             Confirm password
-            <input v-model="accountForm.confirmPassword" type="password" placeholder="Repeat password">
+            <input
+              v-model="accountForm.confirmPassword"
+              type="password"
+              placeholder="Repeat password"
+            >
           </label>
-          <p v-if="accountErrors.confirmPassword" class="error">{{ accountErrors.confirmPassword }}</p>
+          <p
+            v-if="accountErrors.confirmPassword"
+            class="error"
+          >
+            {{ accountErrors.confirmPassword }}
+          </p>
 
           <label class="checkbox">
-            <input v-model="accountForm.acceptTerms" type="checkbox">
+            <input
+              v-model="accountForm.acceptTerms"
+              type="checkbox"
+            >
             I accept the terms
           </label>
-          <p v-if="accountErrors.acceptTerms" class="error">{{ accountErrors.acceptTerms }}</p>
+          <p
+            v-if="accountErrors.acceptTerms"
+            class="error"
+          >
+            {{ accountErrors.acceptTerms }}
+          </p>
 
-          <button type="submit">Validate account</button>
+          <button type="submit">
+            Validate account
+          </button>
         </form>
 
         <pre class="result">{{ accountResult }}</pre>
@@ -44,32 +86,73 @@
 
       <article class="card">
         <h2>Profile form (useZod + preprocess)</h2>
-        <form class="form" @submit.prevent="submitProfile">
+        <form
+          class="form"
+          @submit.prevent="submitProfile"
+        >
           <label>
             Display name
-            <input v-model.trim="profileForm.displayName" type="text" placeholder="Jane Doe">
+            <input
+              v-model.trim="profileForm.displayName"
+              type="text"
+              placeholder="Jane Doe"
+            >
           </label>
-          <p v-if="profileErrors.displayName" class="error">{{ profileErrors.displayName }}</p>
+          <p
+            v-if="profileErrors.displayName"
+            class="error"
+          >
+            {{ profileErrors.displayName }}
+          </p>
 
           <label>
             Age
-            <input v-model.trim="profileForm.age" type="text" placeholder="18">
+            <input
+              v-model.trim="profileForm.age"
+              type="text"
+              placeholder="18"
+            >
           </label>
-          <p v-if="profileErrors.age" class="error">{{ profileErrors.age }}</p>
+          <p
+            v-if="profileErrors.age"
+            class="error"
+          >
+            {{ profileErrors.age }}
+          </p>
 
           <label>
             Website (optional)
-            <input v-model.trim="profileForm.website" type="url" placeholder="https://example.com">
+            <input
+              v-model.trim="profileForm.website"
+              type="url"
+              placeholder="https://example.com"
+            >
           </label>
-          <p v-if="profileErrors.website" class="error">{{ profileErrors.website }}</p>
+          <p
+            v-if="profileErrors.website"
+            class="error"
+          >
+            {{ profileErrors.website }}
+          </p>
 
           <label>
             Interests (comma-separated)
-            <input v-model="profileForm.interestsInput" type="text" placeholder="nuxt, zod, typescript">
+            <input
+              v-model="profileForm.interestsInput"
+              type="text"
+              placeholder="nuxt, zod, typescript"
+            >
           </label>
-          <p v-if="profileErrors.interests" class="error">{{ profileErrors.interests }}</p>
+          <p
+            v-if="profileErrors.interests"
+            class="error"
+          >
+            {{ profileErrors.interests }}
+          </p>
 
-          <button type="submit">Validate profile</button>
+          <button type="submit">
+            Validate profile
+          </button>
         </form>
 
         <pre class="result">{{ profileResult }}</pre>
@@ -77,26 +160,58 @@
 
       <article class="card">
         <h2>Checkout form ($zod)</h2>
-        <form class="form" @submit.prevent="submitCheckout">
+        <form
+          class="form"
+          @submit.prevent="submitCheckout"
+        >
           <label>
             Price
-            <input v-model.trim="checkoutForm.price" type="text" placeholder="100">
+            <input
+              v-model.trim="checkoutForm.price"
+              type="text"
+              placeholder="100"
+            >
           </label>
-          <p v-if="checkoutErrors.price" class="error">{{ checkoutErrors.price }}</p>
+          <p
+            v-if="checkoutErrors.price"
+            class="error"
+          >
+            {{ checkoutErrors.price }}
+          </p>
 
           <label>
             Discount percentage
-            <input v-model.trim="checkoutForm.discount" type="text" placeholder="15">
+            <input
+              v-model.trim="checkoutForm.discount"
+              type="text"
+              placeholder="15"
+            >
           </label>
-          <p v-if="checkoutErrors.discount" class="error">{{ checkoutErrors.discount }}</p>
+          <p
+            v-if="checkoutErrors.discount"
+            class="error"
+          >
+            {{ checkoutErrors.discount }}
+          </p>
 
           <label>
             Coupon code (optional)
-            <input v-model.trim="checkoutForm.coupon" type="text" placeholder="SAVE15">
+            <input
+              v-model.trim="checkoutForm.coupon"
+              type="text"
+              placeholder="SAVE15"
+            >
           </label>
-          <p v-if="checkoutErrors.coupon" class="error">{{ checkoutErrors.coupon }}</p>
+          <p
+            v-if="checkoutErrors.coupon"
+            class="error"
+          >
+            {{ checkoutErrors.coupon }}
+          </p>
 
-          <button type="submit">Validate checkout</button>
+          <button type="submit">
+            Validate checkout
+          </button>
         </form>
 
         <pre class="result">{{ checkoutResult }}</pre>
@@ -106,6 +221,8 @@
 </template>
 
 <script setup lang="ts">
+import type { ZodError } from 'zod'
+
 const z = useZod()
 const { $zod } = useNuxtApp()
 
@@ -125,7 +242,7 @@ const accountSchema = z.object({
   password: z.string().min(8, 'Password must have at least 8 characters.'),
   confirmPassword: z.string(),
   acceptTerms: z.literal(true, { message: 'You must accept the terms.' }),
-}).superRefine((data, ctx) => {
+}).superRefine((data: { password: string, confirmPassword: string }, ctx) => {
   if (data.password !== data.confirmPassword) {
     ctx.addIssue({
       code: 'custom',
@@ -146,7 +263,7 @@ const profileResult = ref('Submit the form to see parsed output.')
 
 const profileSchema = z.object({
   displayName: z.string().min(2, 'Display name must have at least 2 characters.'),
-  age: z.preprocess((value) => Number(value), z.number().int().min(13).max(120)),
+  age: z.preprocess((value: unknown) => Number(value), z.number().int().min(13).max(120)),
   website: z.union([
     z.literal(''),
     z.url('Website must be a valid URL.'),
@@ -163,8 +280,8 @@ const checkoutErrors = reactive<FormErrors>({})
 const checkoutResult = ref('Submit the form to see parsed output.')
 
 const checkoutSchema = $zod.object({
-  price: $zod.preprocess((value) => Number(value), $zod.number().positive('Price must be > 0.')),
-  discount: $zod.preprocess((value) => Number(value), $zod.number().min(0).max(95)),
+  price: $zod.preprocess((value: unknown) => Number(value), $zod.number().positive('Price must be > 0.')),
+  discount: $zod.preprocess((value: unknown) => Number(value), $zod.number().min(0).max(95)),
   coupon: $zod.union([
     $zod.literal(''),
     $zod.string().min(5, 'Coupon must have at least 5 characters.'),
@@ -181,11 +298,12 @@ const checkoutSchema = $zod.object({
 
 function clearErrors(state: FormErrors) {
   for (const key of Object.keys(state)) {
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete state[key]
   }
 }
 
-function assignFirstErrors(state: FormErrors, error: z.ZodError) {
+function assignFirstErrors(state: FormErrors, error: ZodError) {
   clearErrors(state)
   for (const issue of error.issues) {
     const path = issue.path[0]?.toString() || 'form'
@@ -386,4 +504,3 @@ button:hover {
   }
 }
 </style>
-
