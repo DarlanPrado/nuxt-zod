@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v1.1.2
+
+[compare changes](https://github.com/DarlanPrado/nuxt-zod/compare/v1.1.1...v1.1.2)
+
+### 🩹 Fixes
+
+- Add default export to package.json ([eb8d2bf](https://github.com/DarlanPrado/nuxt-zod/commit/eb8d2bf))
+
+### ❤️ Contributors
+
+- DarlanPrado <darlandoprado2014@gmail.com>
+
 ## v1.1.1
 
 [compare changes](https://github.com/DarlanPrado/nuxt-zod/compare/v1.1.0...v1.1.1)
