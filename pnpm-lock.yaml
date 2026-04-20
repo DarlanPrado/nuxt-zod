@@ -11,9 +11,6 @@ importers:
       '@nuxt/kit':
         specifier: ^4.4.2
         version: 4.4.2(magicast@0.5.2)
-      zod:
-        specifier: ^4.3.6
-        version: 4.3.6
     devDependencies:
       '@nuxt/devtools':
         specifier: ^3.2.4
@@ -51,6 +48,9 @@ importers:
       vue-tsc:
         specifier: ^3.2.6
         version: 3.2.6(typescript@6.0.3)
+      zod:
+        specifier: ^3.25.0 || ^4.0.0
+        version: 4.3.6
 
 packages:
 
