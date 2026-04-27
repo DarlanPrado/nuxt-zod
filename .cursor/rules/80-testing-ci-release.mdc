@@ -1,0 +1,32 @@
+---
+description: Testes Vitest/e2e, fixtures, CI e release
+globs:
+  - test/**
+  - playground/**
+  - .github/**
+alwaysApply: false
+---
+
+# Testes, CI e release
+
+## Testes automatizados
+
+- Regressões **SHOULD** usar **Vitest** + **`@nuxt/test-utils/e2e`** com `setup({ rootDir })` apontando para fixture em [`test/fixtures/`](test/fixtures/) ([`test/basic.test.ts`](test/basic.test.ts)).
+- Fixtures **SHOULD** importar o módulo fonte como em [`test/fixtures/basic/nuxt.config.ts`](test/fixtures/basic/nuxt.config.ts) (`../../../src/module`) para testar o código atual, não só o pacote publicado.
+
+## Playground
+
+- [`playground/`](playground/) é workspace para desenvolvimento manual e validação HMR; não substitui testes e2e para mudanças críticas.
+
+## Scripts locais
+
+- Antes de PR relevante: **`npm run lint`**, **`npm run test`**, e **`npm run test:types`** quando alterar tipos ou superfície TS ([`package.json`](package.json)).
+- Build do módulo: **`npm run prepack`** (`nuxt-module-build`). Fluxo de **`release`** espelha lint → test → prepack ([`package.json`](package.json)).
+
+## CI
+
+- [`.github/workflows/ci.yml`](.github/workflows/ci.yml): lint e test com **`dev:prepare`** antes dos testes. Alterações em CI **SHOULD** manter Node/Corepack/nypm alinhados ao que já existe.
+
+## Lacunas conhecidas
+
+- CI **não** executa `test:types` hoje; mudanças que só quebrariam no `vue-tsc` **SHOULD** rodar `test:types` localmente até o CI ser estendido.

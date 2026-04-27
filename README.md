@@ -179,6 +179,8 @@ export default defineNuxtConfig({
 
 Contributions are welcome. Open an issue for bugs or feature ideas, and submit a PR when you're ready.
 
+Normas do projeto para agentes/editores Cursor estão em [.cursor/rules/](.cursor/rules/).
+
 For local development and test commands, see [package.json](package.json).
 
 ## License

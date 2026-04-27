@@ -1,0 +1,27 @@
+---
+description: Runtime Zod — plugin, composables e Nitro
+globs: src/runtime/**/*
+alwaysApply: false
+---
+
+# Runtime Zod
+
+## Separação app vs servidor
+
+- **App (client + SSR)**: [`src/runtime/plugin.ts`](src/runtime/plugin.ts), [`src/runtime/composables/useZod.ts`](src/runtime/composables/useZod.ts).
+- **Nitro**: [`src/runtime/server/utils/useZod.ts`](src/runtime/server/utils/useZod.ts).
+- Mudanças que afetem uma superfície **SHOULD** considerar a outra (paridade `useZod()`, docs e exemplos).
+
+## Contratos públicos
+
+- **`useZod()`**: **MUST** continuar expondo o namespace `z` do pacote `zod` (peer dependency).
+- **Plugin `$zod`**: injetado como `provide.zod` no plugin; consumo via `useNuxtApp()` deve alinhar ao augment em `module.ts` (`$zod` nos tipos).
+- **`#nuxt-zod/server`**: uso explícito no servidor **MAY** coexistir com `useZod()` auto-importado; não duplicar semânticas divergentes.
+
+## Compatibilidade Zod
+
+- O módulo declara peer **`zod`: ^3.25.0 || ^4.0.0**. Código do runtime **MUST NOT** depender de APIs exclusivas de uma major sem fallback ou documentação no README/changelog.
+
+## Estilo
+
+- Manter JSDoc com exemplos nos pontos de entrada públicos quando alterar comportamento.
