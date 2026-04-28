@@ -8,6 +8,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -18,6 +22,8 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - run: npm i -g --force corepack@latest && corepack enable
 
@@ -29,6 +35,21 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    name: test (Nuxt ${{ matrix.nuxt }} / Zod ${{ matrix.zod }})
+
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include:
+          - nuxt: "3"
+            zod: "3"
+          - nuxt: "3"
+            zod: "4"
+          - nuxt: "4"
+            zod: "3"
+          - nuxt: "4"
+            zod: "4"
 
     steps:
       - uses: actions/checkout@v6
@@ -36,11 +57,18 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - run: npm i -g --force corepack@latest && corepack enable
 
       - name: Install dependencies
         run: npx nypm@latest i
+
+      - name: Pin Nuxt and Zod for matrix
+        run: |
+          pnpm add -D "nuxt@${{ matrix.nuxt }}" "zod@${{ matrix.zod }}" "@nuxt/kit@${{ matrix.nuxt }}" "@nuxt/schema@${{ matrix.nuxt }}" "@nuxt/test-utils@${{ matrix.nuxt }}"
+          pnpm add -C playground "nuxt@${{ matrix.nuxt }}"
 
       - name: Playground prepare
         run: npm run dev:prepare

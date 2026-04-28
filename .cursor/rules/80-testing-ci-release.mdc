@@ -25,7 +25,7 @@ alwaysApply: false
 
 ## CI
 
-- [`.github/workflows/ci.yml`](.github/workflows/ci.yml): lint e test com **`dev:prepare`** antes dos testes. Alterações em CI **SHOULD** manter Node/Corepack/nypm alinhados ao que já existe.
+- [`.github/workflows/ci.yml`](.github/workflows/ci.yml): lint e multi-job **`test`** em matriz Nuxt/Zod (latest estável por major) com **`dev:prepare`** antes dos testes. Alterações em CI **SHOULD** manter Node/Corepack/nypm alinhados ao que já existe.
 
 ## Lacunas conhecidas
 
