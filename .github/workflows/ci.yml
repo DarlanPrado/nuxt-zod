@@ -22,10 +22,16 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 20
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
 
-      - run: npm i -g --force corepack@latest && corepack enable
+      - run: npm i -g --force corepack@latest && corepack enable && corepack prepare pnpm@10 --activate
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
         run: npx nypm@latest i
@@ -57,10 +63,17 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 20
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
 
-      - run: npm i -g --force corepack@latest && corepack enable
+      - run: npm i -g --force corepack@latest && corepack enable && corepack prepare pnpm@10 --activate
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-${{ matrix.nuxt }}-${{ matrix.zod }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-
+            ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
         run: npx nypm@latest i
