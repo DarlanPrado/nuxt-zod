@@ -243,11 +243,11 @@ const accountErrors = reactive<FormErrors>({})
 const accountResult = ref('Submit the form to see parsed output.')
 
 const accountSchema = z.object({
-  email: z.email('Provide a valid email.'),
+  email: z.string().email('Provide a valid email.'),
   password: z.string().min(8, 'Password must have at least 8 characters.'),
   confirmPassword: z.string(),
   acceptTerms: z.literal(true, { message: 'You must accept the terms.' }),
-}).superRefine((data: { password: string, confirmPassword: string }, ctx) => {
+}).superRefine((data, ctx) => {
   if (data.password !== data.confirmPassword) {
     ctx.addIssue({
       code: 'custom',
@@ -271,7 +271,7 @@ const profileSchema = z.object({
   age: z.preprocess((value: unknown) => Number(value), z.number().int().min(13).max(120)),
   website: z.union([
     z.literal(''),
-    z.url('Website must be a valid URL.'),
+    z.string().url('Website must be a valid URL.'),
   ]),
   interests: z.array(z.string().min(2)).min(1, 'Add at least one interest.').max(5),
 })
