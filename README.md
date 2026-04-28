@@ -14,6 +14,7 @@ A [Nuxt](https://nuxt.com/) module that brings [Zod](https://zod.dev/) into your
 - 🔌 &nbsp;Auto-imported `useZod()` composable — available in components, pages, and Nitro server routes
 - 🛠 &nbsp;`$zod` plugin instance accessible anywhere via `useNuxtApp()`
 - 🌐 &nbsp;Server-side support with `useZod()` auto-import in Nitro and explicit `#nuxt-zod/server` alias
+- ✅ &nbsp;`event.validate()` on `H3Event` — validate `body`, `query`, and `params` with typed results and configurable `422` errors
 - 🏷️ &nbsp;Full TypeScript augmentation for `NuxtApp` and Vue component instances
 - ⚡ &nbsp;Zod pre-bundled for faster Vite HMR and cold starts
 - 📦 &nbsp;Compatible with Zod v3 and v4
@@ -122,6 +123,62 @@ export default defineEventHandler(async (event) => {
 })
 ```
 
+### Nitro `event.validate()` (body, query, params)
+
+`H3Event` is extended with `event.validate()` to parse the request once and return only the fields you list. Schemas can be combined in any way (`body`, `query`, `params`, or any combination). On failure, the response body (Nuxt / h3) includes your payload under `data`, with Zod issues when `includeIssues` is true.
+
+```ts
+// server/api/example.post.ts
+export default defineEventHandler(async (event) => {
+  const z = useZod()
+  const { body, query } = await event.validate({
+    body: z.object({ name: z.string() }),
+    query: z.object({ page: z.coerce.number().optional() }),
+  })
+  return { ok: true, body, query }
+})
+```
+
+`event.validate()` uses async-safe parsing, so async Zod refinements/transforms are supported.
+
+Default error behavior is configured under `nuxtZod.validation` (see below). You can override it per call: `await event.validate(schemas, { statusCode, message, includeIssues })`.
+
+Types for your own helpers: `ValidationSchema`, `ValidationOptions`, and `InferValidated` are exported from the `nuxt-zod` package and re-exported for types from `#nuxt-zod/server`.
+
+#### Local override example
+
+```ts
+export default defineEventHandler(async (event) => {
+  const z = useZod()
+  const { body } = await event.validate(
+    { body: z.object({ name: z.string().min(1) }) },
+    { includeIssues: false, message: 'Bad input' },
+  )
+  return { ok: true, body }
+})
+```
+
+#### Error payload shape (Nuxt / h3)
+
+`event.validate()` throws `createError(...)`. In Nuxt error responses, your custom payload is nested under `data`:
+
+```json
+{
+  "statusCode": 422,
+  "statusMessage": "Validation failed",
+  "data": {
+    "validation": true,
+    "issues": {
+      "body": [
+        { "code": "invalid_type", "message": "..." }
+      ]
+    }
+  }
+}
+```
+
+If `includeIssues` is `false`, `issues` is omitted.
+
 ### Explicit server import via `#nuxt-zod/server`
 
 For static analysis or when you prefer explicit imports in server code:
@@ -148,7 +205,12 @@ export default defineNuxtConfig({
   modules: ['nuxt-zod'],
   nuxtZod: {
     client: true, // Enable useZod() + $zod in app code (default: true)
-    server: true, // Enable useZod() + #nuxt-zod/server in Nitro (default: true)
+    server: true, // Enable useZod() + #nuxt-zod/server + event.validate() in Nitro (default: true)
+    validation: {
+      statusCode: 422,
+      message: 'Validation failed',
+      includeIssues: true,
+    },
   },
 })
 ```
@@ -156,7 +218,37 @@ export default defineNuxtConfig({
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `client` | `boolean` | `true` | Enables `$zod` plugin and `useZod()` auto-import for client + SSR code |
-| `server` | `boolean` | `true` | Enables `useZod()` auto-import in Nitro and registers the `#nuxt-zod/server` alias |
+| `server` | `boolean` | `true` | Enables `useZod()` auto-import in Nitro, registers the `#nuxt-zod/server` alias, and Nitro plugin for `event.validate()` |
+| `validation` | `object` | see below | Defaults for `event.validate()` errors (`statusCode`, `message`, `includeIssues`) |
+
+`validation` defaults:
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `statusCode` | `number` | `422` | HTTP status when Zod validation fails |
+| `message` | `string` | `'Validation failed'` | `statusMessage` / error message on the thrown error |
+| `includeIssues` | `boolean` | `true` | When true, error `data` includes `issues` grouped by `body` / `query` / `params` |
+
+### Exported types
+
+You can import and reuse these types in your own server helpers:
+
+```ts
+import type { ValidationSchema, ValidationOptions, InferValidated } from 'nuxt-zod'
+```
+
+## Troubleshooting
+
+### `Property 'validate' does not exist on type 'H3Event'`
+
+- Run `npm run dev:prepare` to regenerate Nuxt/Nitro generated types.
+- If the error is in `playground/server/*`, restart `nuxt dev playground` after type generation.
+- Ensure the module is enabled with `server: true` in `nuxtZod` options.
+
+### `/` returns page not found in playground
+
+- Keep `playground/app.vue` as shell (`<NuxtPage />`).
+- Put page content under `playground/pages/index.vue` and additional routes in `playground/pages/*`.
 
 ## Comparison
 

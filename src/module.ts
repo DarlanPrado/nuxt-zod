@@ -3,9 +3,18 @@ import {
   addPlugin,
   addImports,
   addServerImports,
+  addServerPlugin,
   addTypeTemplate,
   createResolver,
 } from '@nuxt/kit'
+
+export type {
+  ValidationSchema,
+  ValidationSchemaInput,
+  ValidationOptions,
+  InferValidated,
+  NuxtZodRuntimeValidation,
+} from './runtime/server/utils/validation'
 
 export interface ModuleOptions {
   /**
@@ -14,10 +23,30 @@ export interface ModuleOptions {
    */
   client?: boolean
   /**
-   * Enable useZod() auto-import and the #nuxt-zod/server explicit import in Nitro.
+   * Enable useZod() auto-import, #nuxt-zod/server, and event.validate() in Nitro.
    * @default true
    */
   server?: boolean
+  /**
+   * Default options for `event.validate()` error responses (overridable per call).
+   */
+  validation?: {
+    /**
+     * HTTP status for Zod validation failures.
+     * @default 422
+     */
+    statusCode?: number
+    /**
+     * Error message (H3 `statusMessage`).
+     * @default 'Validation failed'
+     */
+    message?: string
+    /**
+     * When true, failed responses include `data.issues` with Zod issues per `body` / `query` / `params`.
+     * @default true
+     */
+    includeIssues?: boolean
+  }
 }
 
 export default defineNuxtModule<ModuleOptions>({
@@ -29,6 +58,11 @@ export default defineNuxtModule<ModuleOptions>({
   defaults: {
     client: true,
     server: true,
+    validation: {
+      statusCode: 422,
+      message: 'Validation failed',
+      includeIssues: true,
+    },
   },
   setup(options, nuxt) {
     const { resolve } = createResolver(import.meta.url)
@@ -48,6 +82,9 @@ export default defineNuxtModule<ModuleOptions>({
 
     // ─── Server-side (Nitro) ──────────────────────────────────────────────
     if (options.server !== false) {
+      // event.validate() on H3Event
+      addServerPlugin(resolve('./runtime/server/plugin'))
+
       // Auto-import useZod() in Nitro routes, middleware, and server utils
       addServerImports([{
         name: 'useZod',
@@ -55,8 +92,17 @@ export default defineNuxtModule<ModuleOptions>({
         from: resolve('./runtime/server/utils/useZod'),
       }])
 
+      // Expose validation defaults to Nitro (useRuntimeConfig in server)
+      nuxt.options.runtimeConfig = nuxt.options.runtimeConfig || { public: {} }
+      nuxt.options.runtimeConfig.nuxtZod = {
+        validation: {
+          statusCode: options.validation?.statusCode ?? 422,
+          message: options.validation?.message ?? 'Validation failed',
+          includeIssues: options.validation?.includeIssues !== false,
+        },
+      }
+
       // Explicit import alias: import { z } from '#nuxt-zod/server'
-      // Registered via nitro:config hook so Nitro's rollup plugin resolves it correctly
       nuxt.hook('nitro:config', (nitroConfig) => {
         nitroConfig.virtual ||= {}
         nitroConfig.virtual['#nuxt-zod/server'] = `export { z } from 'zod'`
@@ -83,6 +129,7 @@ declare module 'vue' {
 
 declare module '#nuxt-zod/server' {
   export { z } from 'zod'
+  export type { ValidationSchema, ValidationSchemaInput, ValidationOptions, InferValidated, NuxtZodRuntimeValidation } from 'nuxt-zod'
 }
 
 export {}
