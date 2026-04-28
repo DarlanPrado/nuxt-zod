@@ -1,0 +1,36 @@
+---
+description: Pacote npm ESM, TypeScript, ESLint e EditorConfig
+globs:
+  - "**/*.ts"
+  - "**/*.mts"
+  - "**/*.json"
+  - "**/*.mjs"
+  - eslint.config.mjs
+  - .editorconfig
+alwaysApply: false
+---
+
+# Pacote, TypeScript e qualidade
+
+## Publicação npm
+
+- **`"type": "module"`** e exports apontando para **`dist/`** **MUST** ser preservados; apenas `dist` em **`files`** ([`package.json`](package.json)).
+- Alterações em **`exports`**, **`main`**, **`types`**, **`typesVersions`** **MUST** refletir o output real de `nuxt-module-build` (`prepack`).
+
+## Dependências
+
+- **`zod`** permanece **peerDependency**; não bundlar cópia própria no pacote consumidor.
+- **`@nuxt/kit`** é dependência de runtime do módulo conforme [`package.json`](package.json).
+
+## TypeScript
+
+- Raiz estende **`.nuxt/tsconfig.json`** ([`tsconfig.json`](tsconfig.json)); **MUST NOT** commitar artefatos gerados desnecessários (`dist`, `.nuxt`) que já estão no `.gitignore`.
+
+## ESLint
+
+- Config **flat** com `@nuxt/eslint-config`: `tooling` + **stylistic** ([`eslint.config.mjs`](eslint.config.mjs)). Novas regras **SHOULD** usar `.append(...)`.
+- **`dirs.src`** inclui o playground; ao adicionar outro app Nuxt de dev/teste, **SHOULD** atualizar `dirs` ou documentar exceção.
+
+## EditorConfig
+
+- Respeitar [`.editorconfig`](.editorconfig): 2 espaços, LF, newline final; **Markdown** sem trim obrigatório de whitespace final.

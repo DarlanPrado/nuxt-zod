@@ -1,0 +1,31 @@
+---
+description: Arquitetura do módulo Nuxt — setup, Kit, Nitro e Vite
+globs: src/module.ts
+alwaysApply: false
+---
+
+# Módulo Nuxt (`src/module.ts`)
+
+## Escopo
+
+- Toda alteração de comportamento “do pacote” como módulo **MUST** passar por [`src/module.ts`](src/module.ts): `defineNuxtModule`, `ModuleOptions`, defaults e `setup`.
+- Lógica de runtime pesada **SHOULD** ficar em [`src/runtime/`](src/runtime/), não no `setup` além do necessário para registrar plugins/imports/tipos.
+
+## APIs `@nuxt/kit`
+
+- **MUST** usar `createResolver(import.meta.url)` e `resolve('./runtime/...')` para caminhos do runtime.
+- Opções **`client`** / **`server`**: ao desabilitar um lado, **MUST NOT** registrar imports/plugins/hooks daquele lado (espelhar `options.client !== false` / `options.server !== false`).
+- App (`client`): **MUST** usar `addPlugin` + `addImports` conforme o módulo atual.
+- Nitro (`server`): **MUST** usar `addServerImports` + hook `nitro:config` para o virtual `#nuxt-zod/server`.
+
+## Nitro
+
+- O alias **`#nuxt-zod/server`** **MUST** ser registrado via `nitro:config` com `nitroConfig.virtual['#nuxt-zod/server']` apontando para reexports de `zod` (compatível com resolução Nitro).
+
+## TypeScript gerado
+
+- Augments (`addTypeTemplate`) para `#app`, `vue` e `#nuxt-zod/server` **MUST** permanecer coerentes com o runtime e com [`ModuleOptions`](src/module.ts).
+
+## Vite / performance
+
+- **`optimizeDeps.include`** com `zod` existe por performance de dev (HMR/cold start). Remover ou mudar **SHOULD** incluir motivo e validação manual no playground.
