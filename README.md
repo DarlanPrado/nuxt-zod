@@ -261,11 +261,11 @@ import type { ValidationSchema, ValidationOptions, InferValidated } from 'nuxt-z
 
 ## Works well with
 
-- Nuxt 3 / Nuxt 4
+- Nuxt 3 / Nuxt 4 (see [Compatibility](#compatibility))
 - TypeScript
 - [vee-validate](https://vee-validate.logaretm.com/)
 - Nuxt server routes (`server/api/*`)
-- Zod v3 and v4
+- Zod v3 and v4 (see [Compatibility](#compatibility))
 
 ## Contributing
 
