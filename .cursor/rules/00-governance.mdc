@@ -1,0 +1,30 @@
+---
+description: Governança e precedência das rules do projeto nuxt-zod
+alwaysApply: true
+---
+
+# Governance - rulebook
+
+## Normativa
+
+- **MUST**: obrigatório. Não cumprir requer justificativa explícita e aprovação.
+- **SHOULD**: recomendado forte. Pode haver exceção pontual com justificativa.
+- **MAY**: opcional.
+
+## Autoridade por tema
+
+- **Arquitetura do módulo Nuxt (setup, hooks, Vite, tipos)**: `10-module-architecture.mdc`.
+- **Runtime Zod (app, Nitro, API pública)**: `11-runtime-zod.mdc`.
+- **Pacote ESM, TypeScript, lint e estilo de arquivos**: `20-package-typescript.mdc`.
+- **Testes, CI, playground e release**: `80-testing-ci-release.mdc`.
+
+## Resolução de conflitos
+
+- Quando duas rules cobrirem o mesmo tema, **MUST** prevalecer a rule listada acima como autoritativa para aquele tema.
+- Regras antigas ou duplicadas **MUST NOT** coexistir com regras novas de mesmo escopo.
+
+## Fonte de verdade
+
+- O rulebook em `.cursor/rules/` é a fonte de verdade normativa para este repositório.
+- O [README.md](README.md) e docs gerais **SHOULD** referenciar as rules, sem duplicar política obrigatória.
+- A pasta `.claude/skills/` é material complementar de agente; não substitui `.cursor/rules/`.

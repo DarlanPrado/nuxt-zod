@@ -10,9 +10,12 @@
 </template>
 
 <script setup lang="ts">
+import { useNuxtApp } from '#app'
+import { useZod } from '#imports'
+
 const { $zod } = useNuxtApp()
 
-// useZod() composable (auto-imported)
+// useZod() composable
 const z = useZod()
 const schema = z.object({ name: z.string() })
 const composableResult = schema.safeParse({ name: 'nuxt-zod' }).success
