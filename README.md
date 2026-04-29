@@ -15,6 +15,7 @@ A [Nuxt](https://nuxt.com/) module that brings [Zod](https://zod.dev/) into your
 - 🛠 &nbsp;`$zod` plugin instance accessible anywhere via `useNuxtApp()`
 - 🌐 &nbsp;Server-side support with `useZod()` auto-import in Nitro and explicit `#nuxt-zod/server` alias
 - ✅ &nbsp;`event.validate()` on `H3Event` — validate `body`, `query`, and `params` with typed results and configurable `422` errors
+- 🌍 &nbsp;Global Zod issue messages via `app.config.ts` (`zod.errors`) for both Nuxt app and Nitro
 - 🏷️ &nbsp;Full TypeScript augmentation for `NuxtApp` and Vue component instances
 - ⚡ &nbsp;Zod pre-bundled for faster Vite HMR and cold starts
 - 📦 &nbsp;Compatible with Zod v3 and v4
@@ -144,6 +145,47 @@ export default defineEventHandler(async (event) => {
 Default error behavior is configured under `nuxtZod.validation` (see below). You can override it per call: `await event.validate(schemas, { statusCode, message, includeIssues })`.
 
 Types for your own helpers: `ValidationSchema`, `ValidationOptions`, and `InferValidated` are exported from the `nuxt-zod` package and re-exported for types from `#nuxt-zod/server`.
+
+### Global Zod messages (`app.config.ts`)
+
+Set global Zod issue messages once using `app.config.ts`:
+
+```ts
+// app.config.ts
+export default defineAppConfig({
+  zod: {
+    errors: {
+      string: {
+        invalid_type: 'nao é um texto',
+        min: 'texto muito curto',
+      },
+      number: {
+        invalid_type: 'nao é um numero',
+        min: 'numero muito pequeno',
+      },
+      iso: {
+        date: 'Bad date!',
+      },
+      default: 'valor invalido',
+    },
+  },
+})
+```
+
+This configuration is applied in both the Nuxt app runtime and Nitro runtime.
+
+When `zod.errors` is not declared, the module skips registering the global error-map bootstrap plugins, so this path does not get included in the generated runtime setup.
+
+Precedence remains user-first: schema-level messages, per-parse custom messages, or custom setup executed after `nuxt-zod` can still override these global defaults.
+
+Resolution priority used by `nuxt-zod`:
+
+1. `errors.iso.<rule>` (e.g. `errors.iso.date`)
+2. `errors.<type>.<rule>` (e.g. `errors.string.min`)
+3. `errors.<type>` (string default for the type)
+4. `errors.<issueCode>` (legacy/global code fallback)
+5. `errors.default`
+6. Zod native message
 
 #### Local override example
 
