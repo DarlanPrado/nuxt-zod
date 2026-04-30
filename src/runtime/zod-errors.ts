@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { asIssueRecord, normalizeZodIssue, resolveIsoRule } from './zod-compat'
 
 type ZodRuleMessages = {
   default?: string
@@ -31,55 +32,8 @@ type ZodWithConfig = typeof z & {
 
 let appliedSignature: string | undefined
 
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  return value && typeof value === 'object' ? value as Record<string, unknown> : undefined
-}
-
 function asString(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined
-}
-
-function resolveIssueType(issue: Record<string, unknown>): string | undefined {
-  const code = asString(issue.code)
-  const expected = asString(issue.expected)
-  const issueType = asString(issue.type)
-
-  if (code === 'invalid_type' && expected) {
-    return expected
-  }
-  if (code === 'invalid_date') {
-    return 'date'
-  }
-  if (code === 'invalid_string' || code === 'invalid_format') {
-    return 'string'
-  }
-  if (issueType) {
-    return issueType
-  }
-  return undefined
-}
-
-function resolveIssueRule(issue: Record<string, unknown>): string | undefined {
-  const code = asString(issue.code)
-  if (code === 'too_small') {
-    return 'min'
-  }
-  if (code === 'too_big') {
-    return 'max'
-  }
-  return asString(issue.validation) ?? asString(issue.format) ?? code
-}
-
-function resolveIsoRule(issue: Record<string, unknown>): string | undefined {
-  const format = asString(issue.format)
-  if (format && ['date', 'datetime', 'time', 'duration'].includes(format)) {
-    return format
-  }
-  const validation = asString(issue.validation)
-  if (validation && ['date', 'datetime', 'time', 'duration'].includes(validation)) {
-    return validation
-  }
-  return undefined
 }
 
 function resolveTypeMessage(
@@ -113,14 +67,14 @@ export function applyGlobalZodErrorMessages(messages?: ZodErrorMessages) {
   }
 
   const customError = (issueInput: Record<string, unknown>) => {
-    const issue = asRecord(issueInput) || {}
-    const code = asString(issue.code)
-    const rule = resolveIssueRule(issue)
-    const type = resolveIssueType(issue)
-    const isoRule = resolveIsoRule(issue)
+    const normalized = normalizeZodIssue(issueInput)
+    const code = normalized.code
+    const rule = normalized.rule
+    const type = normalized.type
+    const isoRule = resolveIsoRule(normalized)
 
     if (isoRule) {
-      const isoNode = asRecord(messages.iso)
+      const isoNode = asIssueRecord(messages.iso)
       const isoMessage = isoNode && asString(isoNode[isoRule])
       if (isoMessage) {
         return isoMessage
@@ -141,13 +95,24 @@ export function applyGlobalZodErrorMessages(messages?: ZodErrorMessages) {
   }
 
   const zodWithConfig = z as ZodWithConfig
+  // Keep runtime mutation on the public `zod` root export so direct user imports
+  // (`import { z } from 'zod'`) observe the same global error behavior.
   if (typeof zodWithConfig.config === 'function') {
     zodWithConfig.config({ customError })
   }
-  else if (typeof z.setErrorMap === 'function') {
-    z.setErrorMap((issue, ctx) => ({
-      message: customError(asRecord(issue as unknown) || {}) ?? ctx.defaultError,
-    }))
+  else {
+    const setErrorMap = (z as unknown as {
+      setErrorMap?: (fn: (...args: unknown[]) => { message: string }) => void
+    }).setErrorMap
+    if (typeof setErrorMap === 'function') {
+      setErrorMap((issue: unknown, ctx: unknown) => {
+        const ctxRecord = asIssueRecord(ctx)
+        const fallback = asString(ctxRecord?.defaultError) ?? 'Invalid input'
+        return {
+          message: customError(asIssueRecord(issue) || {}) ?? fallback,
+        }
+      })
+    }
   }
 
   appliedSignature = signature

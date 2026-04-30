@@ -153,6 +153,7 @@ export default defineNuxtModule<ModuleOptions>({
       }
 
       // Explicit import alias: import { z } from '#nuxt-zod/server'
+      // Keep root `zod` here as public API contract for consumer code.
       nuxt.hook('nitro:config', (nitroConfig) => {
         nitroConfig.virtual ||= {}
         nitroConfig.virtual['#nuxt-zod/server'] = `export { z } from 'zod'`
