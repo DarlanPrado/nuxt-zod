@@ -174,6 +174,8 @@ export default defineAppConfig({
 
 This applies in both the Nuxt app runtime and Nitro. Schema-level messages, per-parse options, and code that runs after `nuxt-zod` still win over these globals.
 
+Compatibility note for library authors: `nuxt-zod` keeps its public API on the root `zod` export (`useZod()`, `$zod`, and `#nuxt-zod/server`) so consumer code behaves as expected, while internal issue normalization follows a v3/v4 compatibility layer strategy aligned with [Zod library author guidance](https://zod.dev/library-authors).
+
 **Message resolution order** (first match wins; if nothing matches, Zod’s built-in message is used):
 
 1. **`errors.iso.<rule>`** — e.g. `errors.iso.date` for ISO date strings.
