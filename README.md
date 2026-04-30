@@ -15,6 +15,7 @@ A [Nuxt](https://nuxt.com/) module that brings [Zod](https://zod.dev/) into your
 - 🛠 &nbsp;`$zod` plugin instance accessible anywhere via `useNuxtApp()`
 - 🌐 &nbsp;Server-side support with `useZod()` auto-import in Nitro and explicit `#nuxt-zod/server` alias
 - ✅ &nbsp;`event.validate()` on `H3Event` — validate `body`, `query`, and `params` with typed results and configurable `422` errors
+- 🌍 &nbsp;Global Zod issue messages via `app.config.ts` (`zod.errors`) for both Nuxt app and Nitro
 - 🏷️ &nbsp;Full TypeScript augmentation for `NuxtApp` and Vue component instances
 - ⚡ &nbsp;Zod pre-bundled for faster Vite HMR and cold starts
 - 📦 &nbsp;Compatible with Zod v3 and v4
@@ -145,6 +146,44 @@ Default error behavior is configured under `nuxtZod.validation` (see below). You
 
 Types for your own helpers: `ValidationSchema`, `ValidationOptions`, and `InferValidated` are exported from the `nuxt-zod` package and re-exported for types from `#nuxt-zod/server`.
 
+### Global Zod messages (`app.config.ts`)
+
+Set global Zod issue messages in `app.config.ts` under `zod.errors`. You can use a string per type, nested rules per type, ISO helpers, legacy keys by Zod issue code, or `default`.
+
+```ts
+// app.config.ts
+export default defineAppConfig({
+  zod: {
+    errors: {
+      string: {
+        invalid_type: 'Not a string',
+        min: 'Too short',
+      },
+      number: {
+        invalid_type: 'Not a number',
+        min: 'Number too small',
+      },
+      iso: {
+        date: 'Invalid ISO date',
+      },
+      default: 'Invalid value',
+    },
+  },
+})
+```
+
+This applies in both the Nuxt app runtime and Nitro. Schema-level messages, per-parse options, and code that runs after `nuxt-zod` still win over these globals.
+
+Compatibility note for library authors: `nuxt-zod` keeps its public API on the root `zod` export (`useZod()`, `$zod`, and `#nuxt-zod/server`) so consumer code behaves as expected, while internal issue normalization follows a v3/v4 compatibility layer strategy aligned with [Zod library author guidance](https://zod.dev/library-authors).
+
+**Message resolution order** (first match wins; if nothing matches, Zod’s built-in message is used):
+
+1. **`errors.iso.<rule>`** — e.g. `errors.iso.date` for ISO date strings.
+2. **`errors.<type>.<rule>`** — e.g. `errors.string.min` under a nested `string` object.
+3. **`errors.<type>`** — a single string applies as the default for that type (e.g. `string: 'Not a string'`).
+4. **`errors.<issueCode>`** — fallback by Zod issue code (e.g. `invalid_type`).
+5. **`errors.default`** — catch-all before Zod’s default.
+
 #### Local override example
 
 ```ts
@@ -215,19 +254,17 @@ export default defineNuxtConfig({
 })
 ```
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `client` | `boolean` | `true` | Enables `$zod` plugin and `useZod()` auto-import for client + SSR code |
-| `server` | `boolean` | `true` | Enables `useZod()` auto-import in Nitro, registers the `#nuxt-zod/server` alias, and Nitro plugin for `event.validate()` |
-| `validation` | `object` | see below | Defaults for `event.validate()` errors (`statusCode`, `message`, `includeIssues`) |
+**`nuxtZod` options**
 
-`validation` defaults:
+- **`client`** (`boolean`, default `true`) — Enables the `$zod` plugin and `useZod()` auto-import in the Nuxt app (client + SSR).
+- **`server`** (`boolean`, default `true`) — Enables `useZod()` in Nitro, the `#nuxt-zod/server` alias, and `event.validate()`.
+- **`validation`** (`object`) — Defaults for `event.validate()` HTTP errors when validation fails (see next list).
 
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `statusCode` | `number` | `422` | HTTP status when Zod validation fails |
-| `message` | `string` | `'Validation failed'` | `statusMessage` / error message on the thrown error |
-| `includeIssues` | `boolean` | `true` | When true, error `data` includes `issues` grouped by `body` / `query` / `params` |
+**`nuxtZod.validation`**
+
+- **`statusCode`** (`number`, default `422`) — HTTP status when validation fails.
+- **`message`** (`string`, default `'Validation failed'`) — `statusMessage` on the thrown error.
+- **`includeIssues`** (`boolean`, default `true`) — When `true`, the error payload includes Zod `issues` grouped by `body` / `query` / `params`.
 
 ### Exported types
 
@@ -252,12 +289,10 @@ import type { ValidationSchema, ValidationOptions, InferValidated } from 'nuxt-z
 
 ## Comparison
 
-| | Without nuxt-zod | With nuxt-zod |
-|---|---|---|
-| Auto-import composable | Manual `import { z } from 'zod'` everywhere | `useZod()` available automatically |
-| Plugin access | Manual setup in a Nuxt plugin | `$zod` injected via `useNuxtApp()` |
-| Server-side support | Manual import in every server route | `useZod()` auto-imported in Nitro |
-| TypeScript types | No `NuxtApp` augmentation | Full type augmentation included |
+- **Auto-import composable** — *Without:* manual `import { z } from 'zod'` everywhere. *With:* `useZod()` everywhere.
+- **`$zod` / plugin** — *Without:* wire your own plugin. *With:* `$zod` on `useNuxtApp()`.
+- **Server routes** — *Without:* import `zod` in every handler. *With:* `useZod()` auto-imported in Nitro.
+- **Types** — *Without:* no `NuxtApp` augmentation. *With:* generated types for `$zod` and `#nuxt-zod/server`.
 
 ## Works well with
 

@@ -6,6 +6,12 @@
     <div id="injection-result">
       {{ injectionResult }}
     </div>
+    <div id="composable-global-error">
+      {{ composableGlobalError }}
+    </div>
+    <div id="schema-priority-error">
+      {{ schemaPriorityError }}
+    </div>
   </div>
 </template>
 
@@ -27,4 +33,14 @@ const injectionSchema = $zod.object({ version: $zod.number() })
 const injectionResult = injectionSchema.safeParse({ version: 4 }).success
   ? 'injection-ok'
   : 'injection-fail'
+
+const composableGlobalErrorResult = z.string().safeParse(123)
+const composableGlobalError = composableGlobalErrorResult.success
+  ? 'no-error'
+  : composableGlobalErrorResult.error.issues[0]?.message ?? 'no-message'
+
+const schemaPriorityErrorResult = z.string().min(5, 'schema-level-priority').safeParse('a')
+const schemaPriorityError = schemaPriorityErrorResult.success
+  ? 'no-error'
+  : schemaPriorityErrorResult.error.issues[0]?.message ?? 'no-message'
 </script>

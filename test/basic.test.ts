@@ -42,6 +42,16 @@ describe('nuxt-zod', async () => {
       const html = await $fetch('/')
       expect(html).toContain('injection-ok')
     })
+
+    it('applies global zod errors from app.config in app runtime', async () => {
+      const html = await $fetch('/')
+      expect(html).toContain('nao é um texto')
+    })
+
+    it('keeps schema-level message priority in app runtime', async () => {
+      const html = await $fetch('/')
+      expect(html).toContain('schema-level-priority')
+    })
   })
 
   describe('nitro-side', () => {
@@ -59,6 +69,39 @@ describe('nuxt-zod', async () => {
         body: { name: 123 },
       }) as { success: boolean }
       expect(result.success).toBe(false)
+    })
+
+    it('applies global zod errors in nitro runtime', async () => {
+      const result = await $fetch('/api/validate-global-error', {
+        method: 'POST',
+        body: { name: 123 },
+      }) as { ok: boolean, message?: string }
+      expect(result.ok).toBe(false)
+      expect(result.message).toBe('nao é um texto')
+    })
+
+    it('applies iso namespace message when z.iso.date exists', async () => {
+      const result = await $fetch('/api/validate-iso-date', {
+        method: 'POST',
+        body: { value: '2024-99-99' },
+      }) as { supported: boolean, ok?: boolean, message?: string }
+
+      if (!result.supported) {
+        expect(result.supported).toBe(false)
+        return
+      }
+
+      expect(result.ok).toBe(false)
+      expect(result.message).toBe('Bad date!')
+    })
+
+    it('keeps schema-level message priority in nitro runtime', async () => {
+      const result = await $fetch('/api/validate-global-error', {
+        method: 'POST',
+        body: { mode: 'schema', name: 'a' },
+      }) as { ok: boolean, message?: string }
+      expect(result.ok).toBe(false)
+      expect(result.message).toBe('schema-level-priority')
     })
   })
 
@@ -149,7 +192,7 @@ describe('nuxt-zod', async () => {
       expect(Array.isArray(payload.data?.issues?.body)).toBe(true)
       expect(payload.data?.issues?.body?.length).toBeGreaterThan(0)
       expect(payload.data?.issues?.body?.[0]?.code).toBeTruthy()
-      expect(payload.data?.issues?.body?.[0]?.message).toBeTruthy()
+      expect(payload.data?.issues?.body?.[0]?.message).toBe('nao é um texto')
     })
 
     it('returns grouped issues when multiple sources fail together', async () => {
@@ -164,6 +207,9 @@ describe('nuxt-zod', async () => {
       expect(payload.data?.issues?.body?.length).toBeGreaterThan(0)
       expect(payload.data?.issues?.query?.length).toBeGreaterThan(0)
       expect(payload.data?.issues?.params?.length).toBeGreaterThan(0)
+      expect(payload.data?.issues?.body?.[0]?.message).toBe('texto muito curto')
+      expect(payload.data?.issues?.query?.[0]?.message).toBe('nao é um numero')
+      expect(payload.data?.issues?.params?.[0]?.message).toBe('numero muito pequeno')
     })
 
     it('allows local status override', async () => {
@@ -184,6 +230,25 @@ describe('nuxt-zod', async () => {
       const payload = await readErrorPayload(res)
       expect(payload.data?.validation).toBe(true)
       expect(payload.data?.issues).toBeUndefined()
+    })
+
+    it('supports async schema checks with event.validate()', async () => {
+      const ok = await $fetch('/api/validate-async', {
+        method: 'POST',
+        body: { name: 'nuxt-zod' },
+      }) as { ok: boolean }
+      expect(ok.ok).toBe(true)
+
+      const res = await postJson('/api/validate-async', { name: 'other' })
+      expect(res.status).toBe(409)
+      const payload = await readErrorPayload(res)
+      expect(payload.data?.issues?.body?.[0]?.message).toBe('Invalid async value')
+    })
+
+    it('returns 500 when schema is empty', async () => {
+      const res = await postJson('/api/validate-empty-schema', {})
+      expect(res.status).toBe(500)
+      expect(res.statusText).toBe('Validation schema cannot be empty')
     })
   })
 })
