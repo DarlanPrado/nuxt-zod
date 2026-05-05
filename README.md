@@ -12,6 +12,7 @@ A [Nuxt](https://nuxt.com/) module that brings [Zod](https://zod.dev/) into your
 ## Features
 
 - 🔌 &nbsp;Auto-imported `useZod()` composable — available in components, pages, and Nitro server routes
+- 📁 &nbsp;`useZodSchemas()` — auto-discovers shared Zod registries from `shared/schemas/` (flat and nested) with full TypeScript inference
 - 🛠 &nbsp;`$zod` plugin instance accessible anywhere via `useNuxtApp()`
 - 🌐 &nbsp;Server-side support with `useZod()` auto-import in Nitro and explicit `#nuxt-zod/server` alias
 - ✅ &nbsp;`event.validate()` on `H3Event` — validate `body`, `query`, and `params` with typed results and configurable `422` errors
@@ -146,6 +147,32 @@ Default error behavior is configured under `nuxtZod.validation` (see below). You
 
 Types for your own helpers: `ValidationSchema`, `ValidationOptions`, and `InferValidated` are exported from the `nuxt-zod` package and re-exported for types from `#nuxt-zod/server`.
 
+### Shared registry with `useZodSchemas()`
+
+Place Zod **registry objects** (one default export per file) under `shared/schemas/`. The file path becomes the key path: `shared/schemas/user.ts` → `useZodSchemas().user`, and `shared/schemas/auth/login.ts` → `useZodSchemas().auth.login`. Each file must `export default` an object whose values are Zod schemas (or nested groups you choose to expose). Files named `index.ts` are ignored. Path segments with hyphens or underscores are normalized to camelCase for the property name (e.g. `my-user.ts` → `myUser`).
+
+In schema files, prefer `import { z } from 'zod'` so the same code works in every environment. It is equivalent to `const z = useZod()` in app or server code, but `shared/schemas` is not always processed by the same auto-import rules as `composables/`, so an explicit `zod` import is the most reliable option.
+
+**Client or shared UI code**
+
+```ts
+const { user, auth } = useZodSchemas()
+
+const result = user.create.safeParse(formData)
+```
+
+**Nitro with `event.validate()`**
+
+```ts
+export default defineEventHandler(async (event) => {
+  const { user } = useZodSchemas()
+  const { body } = await event.validate({ body: user.create })
+  return body
+})
+```
+
+In `nuxt dev`, adding, renaming, or removing files under the configured schemas directory triggers a rebuild of the generated registry (no full manual restart required in normal cases).
+
 ### Global Zod messages (`app.config.ts`)
 
 Set global Zod issue messages in `app.config.ts` under `zod.errors`. You can use a string per type, nested rules per type, ISO helpers, legacy keys by Zod issue code, or `default`.
@@ -245,6 +272,10 @@ export default defineNuxtConfig({
   nuxtZod: {
     client: true, // Enable useZod() + $zod in app code (default: true)
     server: true, // Enable useZod() + #nuxt-zod/server + event.validate() in Nitro (default: true)
+    schemas: {
+      enabled: true, // useZodSchemas() + scan shared/schemas (default: true)
+      dir: 'shared/schemas', // root-relative directory to scan (default: 'shared/schemas')
+    },
     validation: {
       statusCode: 422,
       message: 'Validation failed',
@@ -258,6 +289,7 @@ export default defineNuxtConfig({
 
 - **`client`** (`boolean`, default `true`) — Enables the `$zod` plugin and `useZod()` auto-import in the Nuxt app (client + SSR).
 - **`server`** (`boolean`, default `true`) — Enables `useZod()` in Nitro, the `#nuxt-zod/server` alias, and `event.validate()`.
+- **`schemas`** (`object`) — Auto-discovery for `useZodSchemas()`. Set `enabled: false` to disable. `dir` is relative to the Nuxt project root. When `client` or `server` is `false`, `useZodSchemas()` is only registered for the side that remains enabled.
 - **`validation`** (`object`) — Defaults for `event.validate()` HTTP errors when validation fails (see next list).
 
 **`nuxtZod.validation`**

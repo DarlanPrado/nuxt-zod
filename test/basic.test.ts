@@ -52,6 +52,11 @@ describe('nuxt-zod', async () => {
       const html = await $fetch('/')
       expect(html).toContain('schema-level-priority')
     })
+
+    it('useZodSchemas() aggregates shared/schemas with nested namespaces', async () => {
+      const html = await $fetch('/')
+      expect(html).toContain('use-zod-schemas-ok')
+    })
   })
 
   describe('nitro-side', () => {
@@ -69,6 +74,15 @@ describe('nuxt-zod', async () => {
         body: { name: 123 },
       }) as { success: boolean }
       expect(result.success).toBe(false)
+    })
+
+    it('useZodSchemas() works with event.validate on Nitro', async () => {
+      const result = await $fetch('/api/zod-schemas-test', {
+        method: 'POST',
+        body: { token: 'nitro-token' },
+      }) as { ok: boolean, token?: string }
+      expect(result.ok).toBe(true)
+      expect(result.token).toBe('nitro-token')
     })
 
     it('applies global zod errors in nitro runtime', async () => {
