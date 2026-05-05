@@ -12,12 +12,21 @@
     <div id="schema-priority-error">
       {{ schemaPriorityError }}
     </div>
+    <div id="use-zod-schemas-result">
+      {{ useZodSchemasResult }}
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { useNuxtApp } from '#app'
-import { useZod } from '#imports'
+import { useZod, useZodSchemas } from '#imports'
+
+const { user, auth } = useZodSchemas()
+const useZodSchemasResult = user.create.safeParse({ name: 'fixture' }).success
+  && auth.login.body.safeParse({ token: 'ok' }).success
+  ? 'use-zod-schemas-ok'
+  : 'use-zod-schemas-fail'
 
 const { $zod } = useNuxtApp()
 
