@@ -4,11 +4,17 @@ import {
   addImports,
   addServerImports,
   addServerPlugin,
+  addTemplate,
   addTypeTemplate,
   createResolver,
 } from '@nuxt/kit'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
+import {
+  discoverSchemaFiles,
+  generateUseZodSchemasSource,
+  isUnderDirectory,
+} from './build/zod-schemas-template'
 import type { ZodErrorMessages } from './runtime/zod-errors'
 
 export type {
@@ -33,6 +39,21 @@ export interface ModuleOptions {
    * @default true
    */
   server?: boolean
+  /**
+   * Auto-discovered Zod schema registries from the project (see `useZodSchemas()`).
+   */
+  schemas?: {
+    /**
+     * When false, skips scanning and does not auto-import `useZodSchemas()`.
+     * @default true
+     */
+    enabled?: boolean
+    /**
+     * Directory (relative to the Nuxt project root) containing one `.ts` file per domain.
+     * @default 'shared/schemas'
+     */
+    dir?: string
+  }
   /**
    * Default options for `event.validate()` error responses (overridable per call).
    */
@@ -64,6 +85,10 @@ export default defineNuxtModule<ModuleOptions>({
   defaults: {
     client: true,
     server: true,
+    schemas: {
+      enabled: true,
+      dir: 'shared/schemas',
+    },
     validation: {
       statusCode: 422,
       message: 'Validation failed',
@@ -99,6 +124,52 @@ export default defineNuxtModule<ModuleOptions>({
     const hasGlobalZodErrorMessages
       = !!(appConfigErrorMessages && Object.keys(appConfigErrorMessages).length > 0)
         || hasAppConfigFile
+
+    const schemasFeatureEnabled = options.schemas?.enabled !== false
+    const schemasDirRelative = options.schemas?.dir ?? 'shared/schemas'
+    const schemasRootAbsolute = join(nuxt.options.rootDir, schemasDirRelative)
+
+    const registerUseZodSchemas = schemasFeatureEnabled && (options.client !== false || options.server !== false)
+
+    if (registerUseZodSchemas) {
+      const importPathCtx = {
+        srcDir: nuxt.options.srcDir || nuxt.options.rootDir,
+        rootDir: nuxt.options.rootDir,
+      }
+
+      const zodSchemasTemplate = addTemplate({
+        filename: 'nuxt-zod-schemas.mts',
+        write: true,
+        getContents: () => {
+          const entries = discoverSchemaFiles(schemasRootAbsolute)
+          return generateUseZodSchemasSource(entries, importPathCtx)
+        },
+      })
+
+      if (options.client !== false) {
+        addImports({
+          name: 'useZodSchemas',
+          as: 'useZodSchemas',
+          from: zodSchemasTemplate.dst,
+        })
+      }
+
+      if (options.server !== false) {
+        addServerImports([{
+          name: 'useZodSchemas',
+          as: 'useZodSchemas',
+          from: zodSchemasTemplate.dst,
+        }])
+      }
+
+      if (nuxt.options.dev) {
+        nuxt.hook('builder:watch', async (_event, path) => {
+          if (isUnderDirectory(schemasRootAbsolute, path)) {
+            await nuxt.callHook('builder:generateApp')
+          }
+        })
+      }
+    }
 
     // ─── App-side (client + SSR) ──────────────────────────────────────────
     if (options.client !== false) {
