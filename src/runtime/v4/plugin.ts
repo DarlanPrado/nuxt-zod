@@ -1,10 +1,10 @@
 import { defineNuxtPlugin } from '#app'
-import { z } from 'zod'
 
 export default defineNuxtPlugin({
   name: 'nuxt-zod',
   enforce: 'pre',
-  setup() {
+  async setup() {
+    const { z } = await import('zod/v4')
     return {
       provide: {
         zod: z,

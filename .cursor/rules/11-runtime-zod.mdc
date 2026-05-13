@@ -1,27 +1,30 @@
 ---
-description: Runtime Zod — plugin, composables e Nitro
+description: Runtime Zod — plugins, composables, and Nitro
 globs: src/runtime/**/*
 alwaysApply: false
 ---
 
 # Runtime Zod
 
-## Separação app vs servidor
+## App vs server split
 
-- **App (client + SSR)**: [`src/runtime/plugin.ts`](src/runtime/plugin.ts), [`src/runtime/composables/useZod.ts`](src/runtime/composables/useZod.ts).
-- **Nitro**: [`src/runtime/server/utils/useZod.ts`](src/runtime/server/utils/useZod.ts).
-- Mudanças que afetem uma superfície **SHOULD** considerar a outra (paridade `useZod()`, docs e exemplos).
+- **App (client + SSR)**: [`v3/plugin.ts`](src/runtime/v3/plugin.ts) / [`v4/plugin.ts`](src/runtime/v4/plugin.ts) and [`v3/composables/useZod.ts`](src/runtime/v3/composables/useZod.ts) / [`v4/composables/useZod.ts`](src/runtime/v4/composables/useZod.ts) (per `nuxtZod.zodVersion` and the `v3`/`v4` root).
+- **Nitro**: [`v3/server/utils/useZod.ts`](src/runtime/v3/server/utils/useZod.ts) / [`v4/server/utils/useZod.ts`](src/runtime/v4/server/utils/useZod.ts) and server plugins under `v3/server/` or `v4/server/`.
+- Changes that affect one surface **SHOULD** consider the other (`useZod()` parity, docs, and examples).
 
-## Contratos públicos
+## Public contracts
 
-- **`useZod()`**: **MUST** continuar expondo o namespace `z` do pacote `zod` (peer dependency).
-- **Plugin `$zod`**: injetado como `provide.zod` no plugin; consumo via `useNuxtApp()` deve alinhar ao augment em `module.ts` (`$zod` nos tipos).
-- **`#nuxt-zod/server`**: uso explícito no servidor **MAY** coexistir com `useZod()` auto-importado; não duplicar semânticas divergentes.
+- **`useZod()`**: **MUST** expose the same `z` namespace as the app plugin (`zod/v3` under [`v3/`](src/runtime/v3/), `zod/v4` under [`v4/`](src/runtime/v4/)), with no cross-imports between folders. `nuxtZod.zodVersion` in [`module.ts`](src/module.ts) selects the `src/runtime/v3` or `src/runtime/v4` root.
+- **Plugin `$zod`**: `provide.zod` aligned with the augment in `module.ts`; app plugin in `v3/plugin.ts` / `v4/plugin.ts` imports `z` from `zod/v3` or `zod/v4` respectively.
+- **`#nuxt-zod/server`**: **MUST** mirror that surface (virtual in [`module.ts`](src/module.ts): re-export `z` from `zod/v3` or `zod/v4` plus `nuxtZodProviderId`).
+- **Validation / errors / adapter**: mirrored implementations per folder (`zod-adapter.ts`, `zod-errors.ts`, `server/utils/validation.ts`, `validation-types.ts` for v3-only types in [`v3/`](src/runtime/v3/)) so that with `zodVersion: 'v3'` the bundle does not pull `zod/v4`. In **`v4/`**, `zod-adapter.ts` is intentionally **dual** (Zod 3 + Zod 4 schemas for `event.validate()`, and error maps on both `zod/v4` and `zod/v3`); it is not “Zod 4 only”. Public union types: [`v4/validation-types.ts`](src/runtime/v4/validation-types.ts). `H3Event.validate` augment: generated `types/nuxt-zod.d.ts` from [`module.ts`](src/module.ts) `addTypeTemplate`.
+- **App `useZod()`**: **SHOULD** delegate to `useNuxtApp().$zod` (no static import of the Zod namespace in the composable). The app plugin may keep a static provider import so `mkdist` / portable `.d.ts` generation stays reliable.
+- **Shared compat**: [`zod-compat.ts`](src/runtime/zod-compat.ts) at the `runtime/` root; **MUST NOT** import `zod/v4` (neutral helpers only).
 
-## Compatibilidade Zod
+## Zod compatibility
 
-- O módulo declara peer **`zod`: ^3.25.0 || ^4.0.0**. Código do runtime **MUST NOT** depender de APIs exclusivas de uma major sem fallback ou documentação no README/changelog.
+- The module declares peer **`zod`: ^3.25.0 || ^4.0.0**. Runtime code **MUST NOT** rely on major-only APIs without a fallback or documentation in README/changelog.
 
-## Estilo
+## Style
 
-- Manter JSDoc com exemplos nos pontos de entrada públicos quando alterar comportamento.
+- Keep JSDoc with examples on public entry points when behavior changes.

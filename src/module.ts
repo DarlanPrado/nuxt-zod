@@ -7,26 +7,34 @@ import {
   addTemplate,
   addTypeTemplate,
   createResolver,
+  useLogger,
 } from '@nuxt/kit'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { getNuxtZodTypeTemplateContents } from './build/nuxt-zod-type-template'
 import {
   discoverSchemaFiles,
   generateUseZodSchemasSource,
   isUnderDirectory,
 } from './build/zod-schemas-template'
-import type { ZodErrorMessages } from './runtime/zod-errors'
+import type { ZodErrorMessages } from './runtime/v3/zod-errors'
+
+/** Vite/Rollup import strings must use forward slashes (Windows `join` yields `\\`). */
+function runtimeImportPath(absolutePath: string): string {
+  return absolutePath.replace(/\\/g, '/')
+}
 
 export type {
   ZodErrorMessages,
-} from './runtime/zod-errors'
+} from './runtime/v3/zod-errors'
 export type {
+  AnyZodSchemaPublic,
   ValidationSchema,
   ValidationSchemaInput,
   ValidationOptions,
   InferValidated,
   NuxtZodRuntimeValidation,
-} from './runtime/server/utils/validation'
+} from './runtime/v4/validation-types'
 
 export interface ModuleOptions {
   /**
@@ -74,6 +82,18 @@ export interface ModuleOptions {
      */
     includeIssues?: boolean
   }
+  /**
+   * Which Zod API surface nuxt-zod exposes as `z` (`useZod`, `$zod`, `#nuxt-zod/server`).
+   *
+   * - `'v3'` — tree-shakes `zod/v4` from the adapter bundle; `event.validate()` accepts Zod 3 schemas only.
+   * - `'v4'` — uses Zod 4 Classic; `event.validate()` accepts both v3 and v4 schemas.
+   *
+   * When omitted, nuxt-zod defaults to `'v4'` and prints a startup warning.
+   * Set this option explicitly to suppress the warning.
+   *
+   * @default 'v4' (auto, with warning)
+   */
+  zodVersion?: 'v3' | 'v4'
 }
 
 export default defineNuxtModule<ModuleOptions>({
@@ -97,6 +117,28 @@ export default defineNuxtModule<ModuleOptions>({
   },
   setup(options, nuxt) {
     const { resolve } = createResolver(import.meta.url)
+
+    let zodVersion: 'v3' | 'v4'
+    if (options.zodVersion === undefined) {
+      zodVersion = 'v4'
+      const logger = useLogger('nuxt-zod')
+      logger.warn(
+        '`nuxtZod.zodVersion` is not set in nuxt.config — defaulting to "v4" automatically.\n'
+        + '  Set `nuxtZod: { zodVersion: \'v4\' }` explicitly to suppress this warning.',
+      )
+    }
+    else {
+      zodVersion = options.zodVersion
+    }
+    const zodRoot = resolve(`./runtime/${zodVersion}`)
+    const zodSpecifier = zodVersion === 'v4' ? 'zod/v4' : 'zod/v3'
+    const useZodComposable = runtimeImportPath(join(zodRoot, 'composables/useZod.ts'))
+    const appPlugin = runtimeImportPath(join(zodRoot, 'plugin.ts'))
+    const serverUseZod = runtimeImportPath(join(zodRoot, 'server/utils/useZod.ts'))
+    const serverPlugin = runtimeImportPath(join(zodRoot, 'server/plugin.ts'))
+    const appPluginErrors = runtimeImportPath(join(zodRoot, 'plugin-errors.ts'))
+    const serverPluginErrors = runtimeImportPath(join(zodRoot, 'server/plugin-errors.ts'))
+
     type NuxtZodRuntimeConfig = {
       validation?: {
         statusCode?: number
@@ -174,34 +216,34 @@ export default defineNuxtModule<ModuleOptions>({
     // ─── App-side (client + SSR) ──────────────────────────────────────────
     if (options.client !== false) {
       // Provides $zod on the NuxtApp instance
-      addPlugin(resolve('./runtime/plugin'))
+      addPlugin(appPlugin)
       if (hasGlobalZodErrorMessages) {
         // Register error-map bootstrap only when app.config declares zod.errors.
-        addPlugin(resolve('./runtime/plugin-errors'))
+        addPlugin(appPluginErrors)
       }
 
       // Auto-import useZod() in all app code (components, pages, composables)
       addImports({
         name: 'useZod',
         as: 'useZod',
-        from: resolve('./runtime/composables/useZod'),
+        from: useZodComposable,
       })
     }
 
     // ─── Server-side (Nitro) ──────────────────────────────────────────────
     if (options.server !== false) {
       // event.validate() on H3Event
-      addServerPlugin(resolve('./runtime/server/plugin'))
+      addServerPlugin(serverPlugin)
       if (hasGlobalZodErrorMessages) {
         // Keep error-map setup out of server bundle when unused.
-        addServerPlugin(resolve('./runtime/server/plugin-errors'))
+        addServerPlugin(serverPluginErrors)
       }
 
       // Auto-import useZod() in Nitro routes, middleware, and server utils
       addServerImports([{
         name: 'useZod',
         as: 'useZod',
-        from: resolve('./runtime/server/utils/useZod'),
+        from: serverUseZod,
       }])
 
       // Expose validation defaults to Nitro (useRuntimeConfig in server)
@@ -224,80 +266,33 @@ export default defineNuxtModule<ModuleOptions>({
       }
 
       // Explicit import alias: import { z } from '#nuxt-zod/server'
-      // Keep root `zod` here as public API contract for consumer code.
+      // Re-exports `z` from `zod/v3` or `zod/v4` per `nuxtZod.zodVersion` (no extra provider shim).
       nuxt.hook('nitro:config', (nitroConfig) => {
         nitroConfig.virtual ||= {}
-        nitroConfig.virtual['#nuxt-zod/server'] = `export { z } from 'zod'`
+        nitroConfig.virtual['#nuxt-zod/server'] = [
+          `export { z } from '${zodSpecifier}'`,
+          `export const nuxtZodProviderId = '${zodVersion}' as const`,
+        ].join('\n')
       })
     }
 
     // ─── TypeScript augmentation ──────────────────────────────────────────
     addTypeTemplate({
       filename: 'types/nuxt-zod.d.ts',
-      getContents: () => `// Auto-generated by nuxt-zod
-import type { z } from 'zod'
-
-type ZodErrorRuleMessages = {
-  default?: string
-  [rule: string]: string | undefined
-}
-
-type ZodErrorTypeConfig = string | ZodErrorRuleMessages
-
-type ZodErrorMessages = {
-  iso?: ZodErrorRuleMessages
-  string?: ZodErrorTypeConfig
-  number?: ZodErrorTypeConfig
-  boolean?: ZodErrorTypeConfig
-  date?: ZodErrorTypeConfig
-  array?: ZodErrorTypeConfig
-  object?: ZodErrorTypeConfig
-  bigint?: ZodErrorTypeConfig
-  null?: ZodErrorTypeConfig
-  undefined?: ZodErrorTypeConfig
-  default?: string
-  [key: string]: string | ZodErrorRuleMessages | ZodErrorTypeConfig | undefined
-}
-
-declare module '#app' {
-  interface NuxtApp {
-    $zod: typeof z
-  }
-}
-
-declare module 'vue' {
-  interface ComponentCustomProperties {
-    $zod: typeof z
-  }
-}
-
-declare module '#nuxt-zod/server' {
-  export { z } from 'zod'
-  export type { ValidationSchema, ValidationSchemaInput, ValidationOptions, InferValidated, NuxtZodRuntimeValidation } from 'nuxt-zod'
-}
-
-declare module 'nuxt/schema' {
-  interface AppConfigInput {
-    zod?: {
-      errors?: ZodErrorMessages
-    }
-  }
-  interface AppConfig {
-    zod?: {
-      errors?: ZodErrorMessages
-    }
-  }
-}
-
-export {}
-`,
+      getContents: () => getNuxtZodTypeTemplateContents({ zodSpecifier, zodVersion }),
     })
 
-    // ─── Vite: pre-bundle zod for faster dev HMR and cold start ──────────
+    // Subpaths only: avoid `optimizeDeps.include: ['zod']`, which pre-bundles the package root
+    // and (on older Zod) drags every `locales/*` into the analyzed client graph.
     nuxt.options.vite.optimizeDeps ||= {}
     nuxt.options.vite.optimizeDeps.include ||= []
-    if (!nuxt.options.vite.optimizeDeps.include.includes('zod')) {
-      nuxt.options.vite.optimizeDeps.include.push('zod')
+    const viteDeps = (zodVersion === 'v4'
+      ? ['zod/v3', 'zod/v4', 'zod/v4/core'] as const
+      : ['zod/v3'] as const)
+    for (const dep of viteDeps) {
+      if (!nuxt.options.vite.optimizeDeps.include.includes(dep)) {
+        nuxt.options.vite.optimizeDeps.include.push(dep)
+      }
     }
   },
 })

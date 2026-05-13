@@ -1,6 +1,6 @@
 {
   "name": "nuxt-zod",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "description": "A Nuxt module that brings Zod into your app with auto-imported schemas, runtime validation, and a clean developer experience.",
   "author": "DarlanPrado <darlanprado.contact@gmail.com> (https://github.com/DarlanPrado)",
   "repository": {
@@ -13,6 +13,7 @@
   },
   "license": "MIT",
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": {
       "types": "./dist/types.d.mts",
@@ -65,6 +66,6 @@
     "typescript": "~6.0.2",
     "vitest": "^4.1.4",
     "vue-tsc": "^3.2.6",
-    "zod": "^3.25.0 || ^4.0.0"
+    "zod": "^3.25.0"
   }
 }

@@ -5,6 +5,7 @@ export default defineNuxtConfig({
     MyModule,
   ],
   nuxtZod: {
+    zodVersion: 'v4',
     validation: {
       statusCode: 409,
       message: 'Global validation failed',

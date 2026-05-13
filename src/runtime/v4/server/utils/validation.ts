@@ -1,36 +1,20 @@
 import { createError, getQuery, getRouterParams, readBody } from 'h3'
 import type { H3Event } from 'h3'
-import type { z } from 'zod'
 import { useRuntimeConfig } from 'nitropack/runtime'
+import { safeParseAsync } from '../../zod-adapter'
+import type {
+  InferValidated,
+  NuxtZodRuntimeValidation,
+  ValidationOptions,
+  ValidationSchemaInput,
+} from '../../validation-types'
 
-export interface ValidationSchema {
-  body?: z.ZodTypeAny
-  query?: z.ZodTypeAny
-  params?: z.ZodTypeAny
-}
-
-type RequireAtLeastOne<T, Keys extends keyof T = keyof T>
-  = Keys extends keyof T
-    ? Required<Pick<T, Keys>> & Partial<Omit<T, Keys>>
-    : never
-
-export type ValidationSchemaInput = RequireAtLeastOne<ValidationSchema>
-
-export interface ValidationOptions {
-  statusCode?: number
-  message?: string
-  includeIssues?: boolean
-}
-
-export type InferValidated<T extends ValidationSchema> = {
-  [K in keyof T]: T[K] extends z.ZodTypeAny ? z.infer<T[K]> : never
-}
-
-export interface NuxtZodRuntimeValidation {
-  statusCode: number
-  message: string
-  includeIssues: boolean
-}
+export type {
+  InferValidated,
+  NuxtZodRuntimeValidation,
+  ValidationOptions,
+  ValidationSchemaInput,
+} from '../../validation-types'
 
 const VALIDATION_DEFAULTS_CACHE_KEY = '__nuxt_zod_validation_defaults'
 
@@ -89,14 +73,14 @@ export async function runEventValidation<T extends ValidationSchemaInput>(
   const opts = resolveValidationOptions(event, options)
   const out: Record<string, unknown> = {}
   let issues: {
-    body?: z.ZodIssue[]
-    query?: z.ZodIssue[]
-    params?: z.ZodIssue[]
+    body?: unknown[]
+    query?: unknown[]
+    params?: unknown[]
   } | undefined
 
   if (schema.body) {
     const body = await readBody(event)
-    const result = await schema.body.safeParseAsync(body)
+    const result = await safeParseAsync(schema.body, body)
     if (!result.success) {
       issues ||= {}
       issues.body = result.error.issues
@@ -108,7 +92,7 @@ export async function runEventValidation<T extends ValidationSchemaInput>(
 
   if (schema.query) {
     const query = getQuery(event)
-    const result = await schema.query.safeParseAsync(query)
+    const result = await safeParseAsync(schema.query, query)
     if (!result.success) {
       issues ||= {}
       issues.query = result.error.issues
@@ -120,7 +104,7 @@ export async function runEventValidation<T extends ValidationSchemaInput>(
 
   if (schema.params) {
     const params = getRouterParams(event)
-    const result = await schema.params.safeParseAsync(params)
+    const result = await safeParseAsync(schema.params, params)
     if (!result.success) {
       issues ||= {}
       issues.params = result.error.issues
@@ -142,13 +126,4 @@ export async function runEventValidation<T extends ValidationSchemaInput>(
   }
 
   return out as InferValidated<T>
-}
-
-declare module 'h3' {
-  interface H3Event {
-    validate: <T extends ValidationSchemaInput>(
-      schema: T,
-      options?: ValidationOptions,
-    ) => Promise<InferValidated<T>>
-  }
 }
