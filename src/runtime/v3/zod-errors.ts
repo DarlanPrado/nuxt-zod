@@ -1,5 +1,5 @@
-import { z } from 'zod'
-import { asIssueRecord, normalizeZodIssue, resolveIsoRule } from './zod-compat'
+import { asIssueRecord, normalizeZodIssue, resolveIsoRule } from '../zod-compat'
+import { applyPeerZodErrorMaps } from './zod-adapter'
 
 type ZodRuleMessages = {
   default?: string
@@ -20,14 +20,6 @@ export interface ZodErrorMessages {
   null?: ZodTypeMessageConfig
   undefined?: ZodTypeMessageConfig
   [issueCode: string]: string | ZodRuleMessages | ZodTypeMessageConfig | undefined
-}
-
-interface ZodConfigOptions {
-  customError?: (issue: Record<string, unknown>) => string | undefined
-}
-
-type ZodWithConfig = typeof z & {
-  config?: (options: ZodConfigOptions) => void
 }
 
 let appliedSignature: string | undefined
@@ -94,26 +86,7 @@ export function applyGlobalZodErrorMessages(messages?: ZodErrorMessages) {
     return asString(messages.default)
   }
 
-  const zodWithConfig = z as ZodWithConfig
-  // Keep runtime mutation on the public `zod` root export so direct user imports
-  // (`import { z } from 'zod'`) observe the same global error behavior.
-  if (typeof zodWithConfig.config === 'function') {
-    zodWithConfig.config({ customError })
-  }
-  else {
-    const setErrorMap = (z as unknown as {
-      setErrorMap?: (fn: (...args: unknown[]) => { message: string }) => void
-    }).setErrorMap
-    if (typeof setErrorMap === 'function') {
-      setErrorMap((issue: unknown, ctx: unknown) => {
-        const ctxRecord = asIssueRecord(ctx)
-        const fallback = asString(ctxRecord?.defaultError) ?? 'Invalid input'
-        return {
-          message: customError(asIssueRecord(issue) || {}) ?? fallback,
-        }
-      })
-    }
-  }
+  applyPeerZodErrorMaps(customError)
 
   appliedSignature = signature
 }

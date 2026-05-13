@@ -1,7 +1,7 @@
-import type * as z3 from 'zod/v3'
-import type * as z4 from 'zod/v4/core'
+import type { ZodIssue } from 'zod/v3'
+import type { $ZodIssue } from 'zod/v4/core'
 
-export type AnyZodIssue = z3.ZodIssue | z4.$ZodIssue
+export type AnyZodIssue = ZodIssue | $ZodIssue
 
 type LooseIssue = Record<string, unknown>
 

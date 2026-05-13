@@ -1,7 +1,16 @@
-# Changelog
+## Unreleased
 
+### ⚠️ Breaking changes
 
-## v1.2.0
+- Remove the `nuxt-zod/runtime/zod-provider` npm subpath and the internal `zod-provider.ts` shim. `#nuxt-zod/server` and runtime plugins/composables import `z` directly from `zod/v3` or `zod/v4` according to `nuxtZod.zodVersion`.
+
+### Enhancements
+
+- Add `nuxtZod.zodVersion` (`'v3' | 'v4'`, default `'v3'`) and split runtime adapters so `v3` builds omit `zod/v4` from the validation/error-map graph (tree-shaking). `v4` exposes Zod 4 Classic via `useZod` / `#nuxt-zod/server` and keeps dual `event.validate()` for v3 + v4 schemas.
+- Vite `optimizeDeps.include` lists only `zod/v3` (and `zod/v4` + `zod/v4/core` when `zodVersion: 'v4'`), not the bare `zod` entry, so dev/client graphs are less likely to pull the whole package (e.g. every locale) from pre-bundling.
+- Generated `types/nuxt-zod.d.ts` imports `ZodErrorMessages` from `nuxt-zod` instead of duplicating the full `app.config` error-map shape inline (smaller file, single source of truth with runtime).
+- `v4/zod-adapter` imports `safeParseAsync` by name from `zod/v4/core` instead of `import *`, so Nitro/Rollup can tree-shake more of `@zod/core`.
+
 
 [compare changes](https://github.com/DarlanPrado/nuxt-zod/compare/v1.1.2...v1.2.0)
 
