@@ -1,3 +1,4 @@
+import type { z as zType } from 'zod/v4'
 import { defineNuxtPlugin } from '#app'
 
 export default defineNuxtPlugin({
@@ -7,7 +8,7 @@ export default defineNuxtPlugin({
     const { z } = await import('zod/v4')
     return {
       provide: {
-        zod: z,
+        zod: z as typeof zType,
       },
     }
   },
