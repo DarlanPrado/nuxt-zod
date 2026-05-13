@@ -18,7 +18,7 @@ A [Nuxt](https://nuxt.com/) module that brings [Zod](https://zod.dev/) into your
 - ✅ &nbsp;`event.validate()` on `H3Event` — validate `body`, `query`, and `params` with typed results and configurable `422` errors
 - 🌍 &nbsp;Global Zod issue messages via `app.config.ts` (`zod.errors`) for both Nuxt app and Nitro
 - 🏷️ &nbsp;Full TypeScript augmentation for `NuxtApp` and Vue component instances
-- ⚡ &nbsp;Zod pre-bundled for faster Vite HMR and cold starts
+- ⚡ &nbsp;Vite pre-bundles `zod/v3` (and `zod/v4` + `zod/v4/core` when `zodVersion: 'v4'`) — not the bare `zod` root — for faster HMR and to avoid pulling huge optional trees (e.g. all locales) into the client graph on some Zod releases
 - 📦 &nbsp;Compatible with Zod v3 and v4
 
 ## Why use nuxt-zod?
@@ -276,6 +276,7 @@ export default defineNuxtConfig({
       enabled: true, // useZodSchemas() + scan shared/schemas (default: true)
       dir: 'shared/schemas', // root-relative directory to scan (default: 'shared/schemas')
     },
+    zodVersion: 'v4', // 'v3' | 'v4' — omit to log a startup warning; effective default is 'v4'
     validation: {
       statusCode: 422,
       message: 'Validation failed',
@@ -290,7 +291,16 @@ export default defineNuxtConfig({
 - **`client`** (`boolean`, default `true`) — Enables the `$zod` plugin and `useZod()` auto-import in the Nuxt app (client + SSR).
 - **`server`** (`boolean`, default `true`) — Enables `useZod()` in Nitro, the `#nuxt-zod/server` alias, and `event.validate()`.
 - **`schemas`** (`object`) — Auto-discovery for `useZodSchemas()`. Set `enabled: false` to disable. `dir` is relative to the Nuxt project root. When `client` or `server` is `false`, `useZodSchemas()` is only registered for the side that remains enabled.
+- **`zodVersion`** (`'v3' | 'v4'`) — Which Zod API `useZod()`, `$zod`, and `#nuxt-zod/server` expose. See [zodVersion — v3 vs v4](#zodversion--v3-vs-v4) below.
 - **`validation`** (`object`) — Defaults for `event.validate()` HTTP errors when validation fails (see next list).
+- **Contributors — runtime layout**: Implementation is split into [`src/runtime/v3/`](src/runtime/v3/) and [`src/runtime/v4/`](src/runtime/v4/) with the same file names in each tree (`plugin.ts`, `composables/useZod.ts`, `server/utils/validation.ts`, `validation-types.ts`, …). The module picks one root from `nuxtZod.zodVersion`. Shared: [`src/runtime/zod-compat.ts`](src/runtime/zod-compat.ts). Public validation types (v3+v4 union) live in [`src/runtime/v4/validation-types.ts`](src/runtime/v4/validation-types.ts); `H3Event.validate` is augmented in the generated `types/nuxt-zod.d.ts` from the module. With `zodVersion: 'v3'`, run `nuxi analyze` on the playground and confirm `zod/v4` does not appear in app/server chunks that should be v3-only.
+- **Contributors — Nitro bundle / Zod peer**: Use **Zod `^3.25.0` or `^4.0.0`** (the module’s peer range). Releases **below 3.25** often appear in `nuxi analyze` as one large **`zod/.../lib/index.mjs`** in `_nitro.mjs` because subpath builds are coarser. With **`zodVersion: 'v4'`**, Nitro still includes **`zod/v3`** on purpose (dual schemas for `event.validate()` and `zod/v3` error-map parity). In server routes, prefer **`import` from `zod/v3` or `zod/v4`**, or **`#nuxt-zod/server` / `useZod()`**, instead of **`from 'zod'`**, to avoid pulling the package root when you only need one surface.
+
+### zodVersion — v3 vs v4
+
+- **`v3`** — Exposes `zod/v3` as `z`. `event.validate()` accepts **Zod 3 schemas only**; the server bundle stays free of `zod/v4`. Choose this when the whole project is on Zod 3 and you want the smallest Nitro graph.
+- **`v4`** (effective default) — Exposes Zod 4 Classic (`zod/v4`) as `z`. `event.validate()` accepts **both** Zod 3 and Zod 4 schemas in the same call (dispatch uses Zod 4’s `_zod` marker on instances). Nitro still ships `zod/v3` for dual-parse and global error-map parity with `zod/v3` imports.
+- **Startup warning** — If `zodVersion` is **omitted** from `nuxt.config`, the module defaults to **`'v4'`** and logs a warning asking you to set `zodVersion: 'v4'` explicitly. Set **`zodVersion`** to **`'v3'`** or **`'v4'`** to silence it.
 
 **`nuxtZod.validation`**
 

@@ -226,7 +226,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ZodError } from 'zod'
+import type { RefinementCtx, z as z4, ZodError } from 'zod/v4'
 
 const z = useZod()
 const { $zod } = useNuxtApp()
@@ -242,12 +242,13 @@ const accountForm = reactive({
 const accountErrors = reactive<FormErrors>({})
 const accountResult = ref('Submit the form to see parsed output.')
 
-const accountSchema = z.object({
+const accountFields = z.object({
   email: z.string().email('Provide a valid email.'),
   password: z.string().min(8, 'Password must have at least 8 characters.'),
   confirmPassword: z.string(),
-  acceptTerms: z.literal(true, { message: 'You must accept the terms.' }),
-}).superRefine((data, ctx) => {
+  acceptTerms: z.boolean().refine((v: boolean) => v === true, { message: 'You must accept the terms.' }),
+})
+const accountSchema = accountFields.superRefine((data: z4.infer<typeof accountFields>, ctx: RefinementCtx) => {
   if (data.password !== data.confirmPassword) {
     ctx.addIssue({
       code: 'custom',
