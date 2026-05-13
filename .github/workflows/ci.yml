@@ -17,11 +17,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - run: npm i -g --force corepack@latest && corepack enable && corepack prepare pnpm@10 --activate
 
@@ -58,11 +58,11 @@ jobs:
             zod: "4"
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - run: npm i -g --force corepack@latest && corepack enable && corepack prepare pnpm@10 --activate
 
@@ -80,7 +80,7 @@ jobs:
 
       - name: Pin Nuxt and Zod for matrix
         run: |
-          pnpm add -D "nuxt@${{ matrix.nuxt }}" "zod@${{ matrix.zod }}" "@nuxt/kit@${{ matrix.nuxt }}" "@nuxt/schema@${{ matrix.nuxt }}" "@nuxt/test-utils@${{ matrix.nuxt }}"
+          pnpm add -w -D "nuxt@${{ matrix.nuxt }}" "zod@${{ matrix.zod }}" "@nuxt/kit@${{ matrix.nuxt }}" "@nuxt/schema@${{ matrix.nuxt }}" "@nuxt/test-utils@${{ matrix.nuxt }}"
           pnpm add -C playground "nuxt@${{ matrix.nuxt }}"
 
       - name: Playground prepare
