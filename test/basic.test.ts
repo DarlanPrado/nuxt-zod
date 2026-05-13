@@ -195,6 +195,36 @@ describe('nuxt-zod', async () => {
     })
   })
 
+  describe('dual-dispatch v3+v4', () => {
+    it('validates body (zod/v3) and query (zod/v4) in one event.validate()', async () => {
+      const result = await $fetch('/api/validate-dual?tag=nitro', {
+        method: 'POST',
+        body: { name: 'nuxt-zod' },
+      }) as { ok: boolean, body: { name: string }, query: { tag: string } }
+      expect(result.ok).toBe(true)
+      expect(result.body.name).toBe('nuxt-zod')
+      expect(result.query.tag).toBe('nitro')
+    })
+
+    it('returns body issues when Zod 3 schema fails', async () => {
+      const res = await postJson('/api/validate-dual?tag=ok', { name: '' })
+      expect(res.status).toBe(409)
+      const payload = await readErrorPayload(res)
+      expect(payload.data?.validation).toBe(true)
+      expect(Array.isArray(payload.data?.issues?.body)).toBe(true)
+      expect(payload.data?.issues?.body?.length).toBeGreaterThan(0)
+    })
+
+    it('returns query issues when Zod 4 schema fails', async () => {
+      const res = await postJson('/api/validate-dual?tag=', { name: 'nuxt-zod' })
+      expect(res.status).toBe(409)
+      const payload = await readErrorPayload(res)
+      expect(payload.data?.validation).toBe(true)
+      expect(Array.isArray(payload.data?.issues?.query)).toBe(true)
+      expect(payload.data?.issues?.query?.length).toBeGreaterThan(0)
+    })
+  })
+
   describe('event.validate() errors and config', () => {
     it('applies global validation defaults from nuxt.config', async () => {
       const res = await postJson('/api/validate-event', { name: 123 })
