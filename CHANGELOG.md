@@ -1,3 +1,21 @@
+## v1.3.0
+
+[compare changes](https://github.com/DarlanPrado/nuxt-zod/compare/v1.2.0...v1.3.0)
+
+### 🚀 Enhancements
+
+- Update README with zodVersion option details, remove unused v4-mini plugin, and add dual-dispatch validation tests for Zod v3 and v4 ([1f995a2](https://github.com/DarlanPrado/nuxt-zod/commit/1f995a2))
+
+### 🏡 Chore
+
+- Update changelog for breaking changes and enhancements, including removal of `zod-provider` and addition of `zodVersion` option ([11d055d](https://github.com/DarlanPrado/nuxt-zod/commit/11d055d))
+- Downgrade actions/checkout and actions/setup-node to v4, update node version to 22, and adjust pnpm command for workspace installation ([e603fd7](https://github.com/DarlanPrado/nuxt-zod/commit/e603fd7))
+- Sync pnpm-lock.yaml after peerDependencies update ([8d06395](https://github.com/DarlanPrado/nuxt-zod/commit/8d06395))
+
+### ❤️ Contributors
+
+- DarlanPrado <darlandoprado2014@gmail.com>
+
 ## Unreleased
 
 ### ⚠️ Breaking changes
