@@ -1,3 +1,16 @@
+## v1.3.1
+
+[compare changes](https://github.com/DarlanPrado/nuxt-zod/compare/v1.3.0...v1.3.1)
+
+### 🩹 Fixes
+
+- **runtime:** Annotate plugin provide type to fix TS2883 on TypeScript 6 ([d27d12b](https://github.com/DarlanPrado/nuxt-zod/commit/d27d12b))
+- **lint:** Add missing newline at end of plugin files ([4d9b6ae](https://github.com/DarlanPrado/nuxt-zod/commit/4d9b6ae))
+
+### ❤️ Contributors
+
+- DarlanPrado <darlandoprado2014@gmail.com>
+
 ## v1.3.0
 
 [compare changes](https://github.com/DarlanPrado/nuxt-zod/compare/v1.2.0...v1.3.0)
