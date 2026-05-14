@@ -1,3 +1,42 @@
+## v1.4.0
+
+[compare changes](https://github.com/DarlanPrado/nuxt-zod/compare/v1.3.1...v1.4.0)
+
+### 🚀 Enhancements
+
+- **runtime:** Introduce resolveRuntimeEntry function for dynamic resolution of TypeScript and JavaScript files ([9555305](https://github.com/DarlanPrado/nuxt-zod/commit/9555305))
+- **tests:** Add dist-module tests and fixtures for validating packaged artifacts ([c5c6a9b](https://github.com/DarlanPrado/nuxt-zod/commit/c5c6a9b))
+
+### ❤️ Contributors
+
+- DarlanPrado <darlandoprado2014@gmail.com>
+
+## v1.5.0
+
+[compare changes](https://github.com/DarlanPrado/nuxt-zod/compare/v1.3.1...v1.5.0)
+
+### 🚀 Enhancements
+
+- **runtime:** Introduce resolveRuntimeEntry function for dynamic resolution of TypeScript and JavaScript files ([9555305](https://github.com/DarlanPrado/nuxt-zod/commit/9555305))
+- **tests:** Add dist-module tests and fixtures for validating packaged artifacts ([c5c6a9b](https://github.com/DarlanPrado/nuxt-zod/commit/c5c6a9b))
+
+### ❤️ Contributors
+
+- DarlanPrado <darlandoprado2014@gmail.com>
+
+## v1.4.0
+
+[compare changes](https://github.com/DarlanPrado/nuxt-zod/compare/v1.3.1...v1.4.0)
+
+### 🚀 Enhancements
+
+- **runtime:** Introduce resolveRuntimeEntry function for dynamic resolution of TypeScript and JavaScript files ([9555305](https://github.com/DarlanPrado/nuxt-zod/commit/9555305))
+- **tests:** Add dist-module tests and fixtures for validating packaged artifacts ([c5c6a9b](https://github.com/DarlanPrado/nuxt-zod/commit/c5c6a9b))
+
+### ❤️ Contributors
+
+- DarlanPrado <darlandoprado2014@gmail.com>
+
 ## v1.3.1
 
 [compare changes](https://github.com/DarlanPrado/nuxt-zod/compare/v1.3.0...v1.3.1)
