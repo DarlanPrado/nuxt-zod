@@ -24,6 +24,17 @@ function runtimeImportPath(absolutePath: string): string {
   return absolutePath.replace(/\\/g, '/')
 }
 
+/**
+ * From `src/module.ts` runtime lives as `.ts`; from `dist/module.mjs` the builder emits `.js` only.
+ */
+function resolveRuntimeEntry(zodRoot: string, ...pathSegments: string[]) {
+  const base = join(zodRoot, ...pathSegments)
+  const tsCandidate = `${base}.ts`
+  if (existsSync(tsCandidate)) return runtimeImportPath(tsCandidate)
+  const jsCandidate = `${base}.js`
+  return runtimeImportPath(jsCandidate)
+}
+
 export type {
   ZodErrorMessages,
 } from './runtime/v3/zod-errors'
@@ -132,12 +143,12 @@ export default defineNuxtModule<ModuleOptions>({
     }
     const zodRoot = resolve(`./runtime/${zodVersion}`)
     const zodSpecifier = zodVersion === 'v4' ? 'zod/v4' : 'zod/v3'
-    const useZodComposable = runtimeImportPath(join(zodRoot, 'composables/useZod.ts'))
-    const appPlugin = runtimeImportPath(join(zodRoot, 'plugin.ts'))
-    const serverUseZod = runtimeImportPath(join(zodRoot, 'server/utils/useZod.ts'))
-    const serverPlugin = runtimeImportPath(join(zodRoot, 'server/plugin.ts'))
-    const appPluginErrors = runtimeImportPath(join(zodRoot, 'plugin-errors.ts'))
-    const serverPluginErrors = runtimeImportPath(join(zodRoot, 'server/plugin-errors.ts'))
+    const useZodComposable = resolveRuntimeEntry(zodRoot, 'composables', 'useZod')
+    const appPlugin = resolveRuntimeEntry(zodRoot, 'plugin')
+    const serverUseZod = resolveRuntimeEntry(zodRoot, 'server/utils', 'useZod')
+    const serverPlugin = resolveRuntimeEntry(zodRoot, 'server', 'plugin')
+    const appPluginErrors = resolveRuntimeEntry(zodRoot, 'plugin-errors')
+    const serverPluginErrors = resolveRuntimeEntry(zodRoot, 'server', 'plugin-errors')
 
     type NuxtZodRuntimeConfig = {
       validation?: {
