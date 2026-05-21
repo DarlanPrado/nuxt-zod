@@ -8,7 +8,7 @@
     "generate": "nuxt generate"
   },
   "dependencies": {
-    "nuxt": "^4.4.4",
+    "nuxt": "^4.4.6",
     "zod": "^3.25.0"
   }
 }
