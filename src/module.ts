@@ -1,6 +1,7 @@
 import {
   defineNuxtModule,
   addPlugin,
+  addPluginTemplate,
   addImports,
   addServerImports,
   addServerPlugin,
@@ -12,6 +13,13 @@ import {
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { getNuxtZodTypeTemplateContents } from './build/nuxt-zod-type-template'
+import {
+  createZodLocaleClientPluginSource,
+  createZodLocaleStubPlugin,
+  resolveNuxtZodLocaleConfig,
+  type NuxtZodLocaleOption,
+  type NuxtZodLocaleOptions,
+} from './build/zod-locale-stub'
 import {
   discoverSchemaFiles,
   generateUseZodSchemasSource,
@@ -46,6 +54,10 @@ export type {
   InferValidated,
   NuxtZodRuntimeValidation,
 } from './runtime/v4/validation-types'
+export type {
+  NuxtZodLocaleOption,
+  NuxtZodLocaleOptions,
+} from './build/zod-locale-stub'
 
 export interface ModuleOptions {
   /**
@@ -105,6 +117,18 @@ export interface ModuleOptions {
    * @default 'v4' (auto, with warning)
    */
   zodVersion?: 'v3' | 'v4'
+  /**
+   * Zod v4 client locale for default error messages.
+   *
+   * - **String** — shorthand for `{ default: '<code>' }`.
+   * - **Object** — `default` is applied via `z.config()`; `locales` lists files kept
+   *   in the bundle for `z.locales.*` (exactly as provided, without merging `default`).
+   *
+   * Only applies when `zodVersion === 'v4'` and `client !== false`.
+   *
+   * @default 'en'
+   */
+  locale?: NuxtZodLocaleOption
 }
 
 export default defineNuxtModule<ModuleOptions>({
@@ -226,8 +250,30 @@ export default defineNuxtModule<ModuleOptions>({
 
     // ─── App-side (client + SSR) ──────────────────────────────────────────
     if (options.client !== false) {
-      // Provides $zod on the NuxtApp instance
       addPlugin(appPlugin)
+
+      if (zodVersion === 'v4') {
+        const localeConfig = resolveNuxtZodLocaleConfig(options.locale)
+
+        nuxt.hook('vite:extendConfig', (viteConfig, { isClient }) => {
+          const plugin = createZodLocaleStubPlugin(localeConfig, isClient)
+          if (viteConfig.plugins) {
+            viteConfig.plugins.push(plugin)
+          }
+          else {
+            Object.assign(viteConfig, { plugins: [plugin] })
+          }
+        })
+
+        if (localeConfig.default !== 'en') {
+          addPluginTemplate({
+            filename: 'nuxt-zod/locale.client.mjs',
+            mode: 'client',
+            getContents: () => createZodLocaleClientPluginSource(localeConfig.default),
+          })
+        }
+      }
+
       if (hasGlobalZodErrorMessages) {
         // Register error-map bootstrap only when app.config declares zod.errors.
         addPlugin(appPluginErrors)
