@@ -4,6 +4,10 @@ export default defineNuxtConfig({
   compatibilityDate: 'latest',
   nuxtZod: {
     zodVersion: 'v4',
+    locale: {
+      default: 'pt',
+      locales: ['pt', 'es', 'fr'],
+    },
     client: true,
     server: true,
     schemas: {
