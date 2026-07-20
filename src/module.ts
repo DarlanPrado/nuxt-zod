@@ -18,7 +18,6 @@ import {
   createZodLocaleStubPlugin,
   resolveNuxtZodLocaleConfig,
   type NuxtZodLocaleOption,
-  type NuxtZodLocaleOptions,
 } from './build/zod-locale-stub'
 import {
   discoverSchemaFiles,
