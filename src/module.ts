@@ -98,13 +98,14 @@ export interface ModuleOptions {
    *
    * - `'v3'` — tree-shakes `zod/v4` from the adapter bundle; `event.validate()` accepts Zod 3 schemas only.
    * - `'v4'` — uses Zod 4 Classic; `event.validate()` accepts both v3 and v4 schemas.
+   * - `'mini'` — uses Zod Mini (`zod/mini`); requires Zod 4. `event.validate()` accepts v3, v4, and mini schemas.
    *
    * When omitted, nuxt-zod defaults to `'v4'` and prints a startup warning.
    * Set this option explicitly to suppress the warning.
    *
    * @default 'v4' (auto, with warning)
    */
-  zodVersion?: 'v3' | 'v4'
+  zodVersion?: 'v3' | 'v4' | 'mini'
 }
 
 export default defineNuxtModule<ModuleOptions>({
@@ -129,7 +130,7 @@ export default defineNuxtModule<ModuleOptions>({
   setup(options, nuxt) {
     const { resolve } = createResolver(import.meta.url)
 
-    let zodVersion: 'v3' | 'v4'
+    let zodVersion: 'v3' | 'v4' | 'mini'
     if (options.zodVersion === undefined) {
       zodVersion = 'v4'
       const logger = useLogger('nuxt-zod')
@@ -142,7 +143,11 @@ export default defineNuxtModule<ModuleOptions>({
       zodVersion = options.zodVersion
     }
     const zodRoot = resolve(`./runtime/${zodVersion}`)
-    const zodSpecifier = zodVersion === 'v4' ? 'zod/v4' : 'zod/v3'
+    const zodSpecifier = zodVersion === 'mini'
+      ? 'zod/mini'
+      : zodVersion === 'v4'
+        ? 'zod/v4'
+        : 'zod/v3'
     const useZodComposable = resolveRuntimeEntry(zodRoot, 'composables', 'useZod')
     const appPlugin = resolveRuntimeEntry(zodRoot, 'plugin')
     const serverUseZod = resolveRuntimeEntry(zodRoot, 'server/utils', 'useZod')
@@ -277,13 +282,21 @@ export default defineNuxtModule<ModuleOptions>({
       }
 
       // Explicit import alias: import { z } from '#nuxt-zod/server'
-      // Re-exports `z` from `zod/v3` or `zod/v4` per `nuxtZod.zodVersion` (no extra provider shim).
+      // Re-exports `z` from `zod/v3`, `zod/v4`, or `zod/mini` per `nuxtZod.zodVersion` (no extra provider shim).
+      // Mini uses namespace import + re-export (`export * as` is not reliably parsed in Nitro virtuals).
+      // Virtual source is plain JS (no `as const`) so Rollup can parse it without a TS plugin.
       nuxt.hook('nitro:config', (nitroConfig) => {
         nitroConfig.virtual ||= {}
-        nitroConfig.virtual['#nuxt-zod/server'] = [
-          `export { z } from '${zodSpecifier}'`,
-          `export const nuxtZodProviderId = '${zodVersion}' as const`,
-        ].join('\n')
+        nitroConfig.virtual['#nuxt-zod/server'] = zodVersion === 'mini'
+          ? [
+              `import * as z from '${zodSpecifier}'`,
+              'export { z }',
+              `export const nuxtZodProviderId = '${zodVersion}'`,
+            ].join('\n')
+          : [
+              `export { z } from '${zodSpecifier}'`,
+              `export const nuxtZodProviderId = '${zodVersion}'`,
+            ].join('\n')
       })
     }
 
@@ -297,9 +310,11 @@ export default defineNuxtModule<ModuleOptions>({
     // and (on older Zod) drags every `locales/*` into the analyzed client graph.
     nuxt.options.vite.optimizeDeps ||= {}
     nuxt.options.vite.optimizeDeps.include ||= []
-    const viteDeps = (zodVersion === 'v4'
-      ? ['zod/v3', 'zod/v4', 'zod/v4/core'] as const
-      : ['zod/v3'] as const)
+    const viteDeps = (zodVersion === 'mini'
+      ? ['zod/v3', 'zod/v4/core', 'zod/mini'] as const
+      : zodVersion === 'v4'
+        ? ['zod/v3', 'zod/v4', 'zod/v4/core'] as const
+        : ['zod/v3'] as const)
     for (const dep of viteDeps) {
       if (!nuxt.options.vite.optimizeDeps.include.includes(dep)) {
         nuxt.options.vite.optimizeDeps.include.push(dep)
