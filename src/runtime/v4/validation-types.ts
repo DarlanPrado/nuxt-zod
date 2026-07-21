@@ -39,13 +39,6 @@ export interface NuxtZodRuntimeValidation {
   includeIssues: boolean
 }
 
-declare module 'h3' {
-  interface H3Event {
-    validate: <T extends ValidationSchemaInput>(
-      schema: T,
-      options?: ValidationOptions,
-    ) => Promise<InferValidated<T>>
-  }
-}
-
-export {}
+// `H3Event.validate` is augmented only in the generated `types/nuxt-zod.d.ts`
+// (`getNuxtZodTypeTemplateContents`). Keeping `declare module 'h3'` here would
+// conflict with the published `dist` copy under `vue-tsc` of this repo.

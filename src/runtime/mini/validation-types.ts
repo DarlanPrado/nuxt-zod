@@ -39,5 +39,5 @@ export interface NuxtZodRuntimeValidation {
   includeIssues: boolean
 }
 
-// H3Event.validate augment lives only in `v4/validation-types.ts` (public package export).
-// Duplicating `declare module 'h3'` here conflicts under vue-tsc of the whole `src/` tree.
+// H3Event.validate augment lives only in the generated `types/nuxt-zod.d.ts`
+// (`getNuxtZodTypeTemplateContents`). Do not add `declare module 'h3'` here.
