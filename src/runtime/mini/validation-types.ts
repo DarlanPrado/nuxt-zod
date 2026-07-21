@@ -1,7 +1,7 @@
 import type { z } from 'zod/v3'
 import type { $ZodType, output } from 'zod/v4/core'
 
-/** Schemas accepted by `event.validate()` in dual mode (v3 + v4). */
+/** Schemas accepted by `event.validate()` in dual mode (v3 + v4 / mini). */
 export type AnyZodSchemaPublic = z.ZodTypeAny | $ZodType
 
 export interface ValidationSchema {
@@ -39,6 +39,5 @@ export interface NuxtZodRuntimeValidation {
   includeIssues: boolean
 }
 
-// `H3Event.validate` is augmented only in the generated `types/nuxt-zod.d.ts`
-// (`getNuxtZodTypeTemplateContents`). Keeping `declare module 'h3'` here would
-// conflict with the published `dist` copy under `vue-tsc` of this repo.
+// H3Event.validate augment lives only in the generated `types/nuxt-zod.d.ts`
+// (`getNuxtZodTypeTemplateContents`). Do not add `declare module 'h3'` here.

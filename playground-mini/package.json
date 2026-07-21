@@ -1,9 +1,9 @@
 {
   "private": true,
-  "name": "nuxt-zod-playground",
+  "name": "nuxt-zod-playground-mini",
   "type": "module",
   "scripts": {
-    "dev": "nuxt dev",
+    "dev": "nuxt dev --port 3001",
     "build": "nuxt build",
     "generate": "nuxt generate"
   },
