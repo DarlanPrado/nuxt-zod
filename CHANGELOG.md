@@ -1,3 +1,67 @@
+## v1.5.0
+
+[compare changes](https://github.com/DarlanPrado/nuxt-zod/compare/v1.3.3...v1.5.0)
+
+### 🚀 Enhancements
+
+- **runtime:** Add Zod Mini runtime tree ([d9ad9a8](https://github.com/DarlanPrado/nuxt-zod/commit/d9ad9a8))
+- **module:** Support zodVersion mini ([2a2bf9f](https://github.com/DarlanPrado/nuxt-zod/commit/2a2bf9f))
+- Enhance Zod type template generation with serverEnabled option ([ab58ece](https://github.com/DarlanPrado/nuxt-zod/commit/ab58ece))
+
+### 💅 Refactors
+
+- Update H3Event.validate declaration and documentation ([50cfa7d](https://github.com/DarlanPrado/nuxt-zod/commit/50cfa7d))
+
+### 📖 Documentation
+
+- Document Zod Mini support and agent rules ([604d20e](https://github.com/DarlanPrado/nuxt-zod/commit/604d20e))
+
+### 🏡 Chore
+
+- **playground:** Add dedicated Zod Mini playground app ([baf6b37](https://github.com/DarlanPrado/nuxt-zod/commit/baf6b37))
+- **playground:** Include playground-mini in ESLint and TypeScript configurations ([30f02a4](https://github.com/DarlanPrado/nuxt-zod/commit/30f02a4))
+
+### ✅ Tests
+
+- Add Zod Mini e2e fixture and suite ([e553af5](https://github.com/DarlanPrado/nuxt-zod/commit/e553af5))
+- **ci:** Isolate Zod Mini suite from Classic matrix ([c5cd553](https://github.com/DarlanPrado/nuxt-zod/commit/c5cd553))
+
+### ❤️ Contributors
+
+- DarlanPrado <darlandoprado2014@gmail.com>
+
+## v1.4.0
+
+[compare changes](https://github.com/DarlanPrado/nuxt-zod/compare/v1.3.3...v1.4.0)
+
+### 🚀 Enhancements
+
+- **runtime:** Add Zod Mini runtime tree ([d9ad9a8](https://github.com/DarlanPrado/nuxt-zod/commit/d9ad9a8))
+- **module:** Support zodVersion mini ([2a2bf9f](https://github.com/DarlanPrado/nuxt-zod/commit/2a2bf9f))
+- Enhance Zod type template generation with serverEnabled option ([ab58ece](https://github.com/DarlanPrado/nuxt-zod/commit/ab58ece))
+
+### 💅 Refactors
+
+- Update H3Event.validate declaration and documentation ([50cfa7d](https://github.com/DarlanPrado/nuxt-zod/commit/50cfa7d))
+
+### 📖 Documentation
+
+- Document Zod Mini support and agent rules ([604d20e](https://github.com/DarlanPrado/nuxt-zod/commit/604d20e))
+
+### 🏡 Chore
+
+- **playground:** Add dedicated Zod Mini playground app ([baf6b37](https://github.com/DarlanPrado/nuxt-zod/commit/baf6b37))
+- **playground:** Include playground-mini in ESLint and TypeScript configurations ([30f02a4](https://github.com/DarlanPrado/nuxt-zod/commit/30f02a4))
+
+### ✅ Tests
+
+- Add Zod Mini e2e fixture and suite ([e553af5](https://github.com/DarlanPrado/nuxt-zod/commit/e553af5))
+- **ci:** Isolate Zod Mini suite from Classic matrix ([c5cd553](https://github.com/DarlanPrado/nuxt-zod/commit/c5cd553))
+
+### ❤️ Contributors
+
+- DarlanPrado <darlandoprado2014@gmail.com>
+
 ## v1.3.3
 
 [compare changes](https://github.com/DarlanPrado/nuxt-zod/compare/v1.3.2...v1.3.3)
