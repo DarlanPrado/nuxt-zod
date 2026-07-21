@@ -34,13 +34,16 @@
     "dist"
   ],
   "workspaces": [
-    "playground"
+    "playground",
+    "playground-mini"
   ],
   "scripts": {
     "prepack": "nuxt-module-build build",
     "dev": "npm run dev:prepare && nuxt dev playground",
+    "dev:mini": "npm run dev:prepare:mini && nuxt dev playground-mini --port 3001",
     "dev:build": "nuxt build playground",
     "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxt prepare playground",
+    "dev:prepare:mini": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxt prepare playground-mini",
     "release": "npm run lint && npm run test && npm run test:mini && npm run prepack && changelogen --release && npm publish && git push --follow-tags",
     "lint": "eslint .",
     "test": "vitest run test/basic.test.ts test/dist-module.test.ts",

@@ -19,7 +19,9 @@ alwaysApply: false
 
 ## Playground
 
-- [`playground/`](playground/) é workspace para desenvolvimento manual e validação HMR; não substitui testes e2e para mudanças críticas.
+- [`playground/`](playground/) é workspace Classic (`zodVersion: 'v4'`) — `npm run dev` (porta 3000).
+- [`playground-mini/`](playground-mini/) é workspace Mini (`zodVersion: 'mini'`) — `npm run dev:mini` (porta 3001). Não misturar APIs Classic/Mini no mesmo app.
+- Playgrounds não substituem testes e2e para mudanças críticas.
 
 ## Scripts locais
 
