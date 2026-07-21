@@ -13,19 +13,19 @@ alwaysApply: false
 
 ## `@nuxt/kit` APIs
 
-- **MUST** use `createResolver(import.meta.url)` and `resolve('./runtime/...')` for runtime paths (including `resolve(\`./runtime/${zodVersion}/...\`)` for the `v3`/`v4` root).
+- **MUST** use `createResolver(import.meta.url)` and `resolve('./runtime/...')` for runtime paths (including `resolve(\`./runtime/${zodVersion}/...\`)` for the `v3`/`v4`/`mini` root).
 - **`client`** / **`server`** options: when a side is disabled, **MUST NOT** register imports/plugins/hooks for that side (mirror `options.client !== false` / `options.server !== false`).
 - App (`client`): **MUST** use `addPlugin` + `addImports` as the module does today.
 - Nitro (`server`): **MUST** use `addServerImports` + the `nitro:config` hook for the `#nuxt-zod/server` virtual.
 
 ## Nitro
 
-- The **`#nuxt-zod/server`** virtual **MUST** re-export `z` from **`zod/v3`** or **`zod/v4`** according to `nuxtZod.zodVersion`, plus `nuxtZodProviderId` (`'v3' | 'v4'`). No extra shim file or `nuxt-zod/runtime/zod-provider` alias.
+- The **`#nuxt-zod/server`** virtual **MUST** re-export `z` from **`zod/v3`**, **`zod/v4`**, or **`zod/mini`** according to `nuxtZod.zodVersion`, plus `nuxtZodProviderId` (`'v3' | 'v4' | 'mini'`). For **`mini`**, use **`import * as z from 'zod/mini'`** + **`export { z }`** (Nitro virtuals do not reliably parse `export * as`); for `v3`/`v4` use **`export { z } from '...'`**. No extra shim file or `nuxt-zod/runtime/zod-provider` alias.
 
 ## Generated TypeScript
 
-- Augments (`addTypeTemplate`) for `#app`, `vue`, and `#nuxt-zod/server` **MUST** stay consistent with runtime and [`ModuleOptions`](src/module.ts); `#nuxt-zod/server` types **MUST** use the same `zod/v3` or `zod/v4` specifier as the virtual module. The `.d.ts` body **SHOULD** live in [`src/build/nuxt-zod-type-template.ts`](src/build/nuxt-zod-type-template.ts) (`getNuxtZodTypeTemplateContents`) so [`module.ts`](src/module.ts) stays thin.
+- Augments (`addTypeTemplate`) for `#app`, `vue`, and `#nuxt-zod/server` **MUST** stay consistent with runtime and [`ModuleOptions`](src/module.ts); `#nuxt-zod/server` types **MUST** use the same `zod/v3`, `zod/v4`, or `zod/mini` specifier as the virtual module (namespace import/export for mini). The `.d.ts` body **SHOULD** live in [`src/build/nuxt-zod-type-template.ts`](src/build/nuxt-zod-type-template.ts) (`getNuxtZodTypeTemplateContents`) so [`module.ts`](src/module.ts) stays thin.
 
 ## Vite / performance
 
-- **`optimizeDeps.include`**: **MUST NOT** list the bare specifier `zod` (pre-bundle of the package root pulls huge graphs on some Zod versions, e.g. all `locales/*`). Use **`zod/v3`** always, and **`zod/v4`** + **`zod/v4/core`** when `zodVersion === 'v4'`. Changing this **SHOULD** include rationale and manual validation in the playground.
+- **`optimizeDeps.include`**: **MUST NOT** list the bare specifier `zod` (pre-bundle of the package root pulls huge graphs on some Zod versions, e.g. all `locales/*`). Use **`zod/v3`** always; **`zod/v4`** + **`zod/v4/core`** when `zodVersion === 'v4'`; **`zod/mini`** + **`zod/v4/core`** (+ `zod/v3`) when `zodVersion === 'mini'`. Changing this **SHOULD** include rationale and manual validation in the playground.
