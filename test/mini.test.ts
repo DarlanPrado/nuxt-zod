@@ -1,20 +1,12 @@
+/**
+ * Zod Mini e2e suite (`nuxtZod.zodVersion: 'mini'`).
+ * Requires peer Zod 4 (`zod/mini`). Run via `npm run test:mini`.
+ */
 import { fileURLToPath } from 'node:url'
 import { describe, it, expect } from 'vitest'
 import { setup, $fetch, fetch as testFetch } from '@nuxt/test-utils/e2e'
 
-async function isZodMiniAvailable(): Promise<boolean> {
-  try {
-    await import('zod/mini')
-    return true
-  }
-  catch {
-    return false
-  }
-}
-
-const hasMini = await isZodMiniAvailable()
-
-describe.runIf(hasMini)('nuxt-zod mini', async () => {
+describe('nuxt-zod mini', async () => {
   await setup({
     rootDir: fileURLToPath(new URL('./fixtures/mini', import.meta.url)),
   })
@@ -121,11 +113,5 @@ describe.runIf(hasMini)('nuxt-zod mini', async () => {
       expect(payload.data?.validation).toBe(true)
       expect(payload.data?.issues?.body?.length).toBeGreaterThan(0)
     })
-  })
-})
-
-describe.runIf(!hasMini)('nuxt-zod mini (skipped — zod/mini unavailable)', () => {
-  it('skips when peer Zod does not export zod/mini', () => {
-    expect(hasMini).toBe(false)
   })
 })

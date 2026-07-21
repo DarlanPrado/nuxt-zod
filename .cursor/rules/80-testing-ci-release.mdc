@@ -14,6 +14,8 @@ alwaysApply: false
 - Regressões **SHOULD** usar **Vitest** + **`@nuxt/test-utils/e2e`** com `setup({ rootDir })` apontando para fixture em [`test/fixtures/`](test/fixtures/) ([`test/basic.test.ts`](test/basic.test.ts)).
 - Fixtures **SHOULD** importar o módulo fonte como em [`test/fixtures/basic/nuxt.config.ts`](test/fixtures/basic/nuxt.config.ts) (`../../../src/module`) para testar o código atual, não só o pacote publicado.
 - Uma fixture complementar **MAY** importar [`dist/module.mjs`](dist/module.mjs) após `nuxt-module-build build` (ver [`test/dist-module.test.ts`](test/dist-module.test.ts) e [`test/fixtures/dist-module/`](test/fixtures/dist-module/)) para validar o artefato empacotado (resolução de runtime em `dist/`, exports npm).
+- **Classic / dist** (`zodVersion` v3 ou v4 Classic): [`test/basic.test.ts`](test/basic.test.ts), [`test/dist-module.test.ts`](test/dist-module.test.ts) via **`npm run test`**.
+- **Zod Mini** (`zodVersion: 'mini'`): [`test/mini.test.ts`](test/mini.test.ts) + [`test/fixtures/mini/`](test/fixtures/mini/) via **`npm run test:mini`**. Mini **MUST NOT** be loaded by `npm run test` (Zod 3 peers have no `zod/mini`).
 
 ## Playground
 
@@ -21,12 +23,16 @@ alwaysApply: false
 
 ## Scripts locais
 
-- Antes de PR relevante: **`npm run lint`**, **`npm run test`**, e **`npm run test:types`** quando alterar tipos ou superfície TS ([`package.json`](package.json)).
-- Build do módulo: **`npm run prepack`** (`nuxt-module-build`). Fluxo de **`release`** espelha lint → test → prepack ([`package.json`](package.json)).
+- Antes de PR relevante: **`npm run lint`**, **`npm run test`**, **`npm run test:mini`** quando tocar Mini, e **`npm run test:types`** quando alterar tipos ou superfície TS ([`package.json`](package.json)).
+- Build do módulo: **`npm run prepack`** (`nuxt-module-build`). Fluxo de **`release`**: lint → test → test:mini → prepack ([`package.json`](package.json)).
 
 ## CI
 
-- [`.github/workflows/ci.yml`](.github/workflows/ci.yml): lint e multi-job **`test`** em matriz Nuxt/Zod (latest estável por major) com **`dev:prepare`** antes dos testes. Alterações em CI **SHOULD** manter Node/Corepack/nypm alinhados ao que já existe.
+- [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
+  - **`lint`**
+  - **`test`**: matriz Nuxt × Zod (3/4) — só suites Classic/dist (`npm run test`)
+  - **`test-mini`**: matriz Nuxt 3/4 com **Zod 4** fixo — só Mini (`npm run test:mini`)
+- Alterações em CI **SHOULD** manter Node/Corepack/nypm alinhados ao que já existe.
 
 ## Lacunas conhecidas
 

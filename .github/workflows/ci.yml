@@ -45,7 +45,7 @@ jobs:
 
     strategy:
       fail-fast: false
-      max-parallel: 4
+      max-parallel: 6
       matrix:
         include:
           - nuxt: "3"
@@ -88,3 +88,47 @@ jobs:
 
       - name: Test
         run: npm run test
+
+  test-mini:
+    runs-on: ubuntu-latest
+    name: test-mini (Nuxt ${{ matrix.nuxt }})
+
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        include:
+          - nuxt: "3"
+          - nuxt: "4"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm i -g --force corepack@latest && corepack enable && corepack prepare pnpm@10 --activate
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-${{ matrix.nuxt }}-4-mini
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: npx nypm@latest i
+
+      - name: Pin Nuxt and Zod 4 for Mini
+        run: |
+          pnpm add -w -D "nuxt@${{ matrix.nuxt }}" "zod@4" "@nuxt/kit@${{ matrix.nuxt }}" "@nuxt/schema@${{ matrix.nuxt }}" "@nuxt/test-utils@${{ matrix.nuxt }}"
+          pnpm add -C playground "nuxt@${{ matrix.nuxt }}"
+
+      - name: Playground prepare
+        run: npm run dev:prepare
+
+      - name: Test Mini
+        run: npm run test:mini
