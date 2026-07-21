@@ -303,7 +303,11 @@ export default defineNuxtModule<ModuleOptions>({
     // ─── TypeScript augmentation ──────────────────────────────────────────
     addTypeTemplate({
       filename: 'types/nuxt-zod.d.ts',
-      getContents: () => getNuxtZodTypeTemplateContents({ zodSpecifier, zodVersion }),
+      getContents: () => getNuxtZodTypeTemplateContents({
+        zodSpecifier,
+        zodVersion,
+        serverEnabled: options.server !== false,
+      }),
     })
 
     // Subpaths only: avoid `optimizeDeps.include: ['zod']`, which pre-bundles the package root
