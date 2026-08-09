@@ -17,6 +17,7 @@ alwaysApply: false
 - **`client`** / **`server`** options: when a side is disabled, **MUST NOT** register imports/plugins/hooks for that side (mirror `options.client !== false` / `options.server !== false`).
 - App (`client`): **MUST** use `addPlugin` + `addImports` as the module does today.
 - Nitro (`server`): **MUST** use `addServerImports` + the `nitro:config` hook for the `#nuxt-zod/server` virtual.
+- **Layers:** `useZodSchemas()` discovery **MUST** scan `schemas.dir` across all layers via [`listNuxtZodLayerDirectories`](src/build/layer-directories.ts): Kit `getLayerDirectories` on Nuxt 4+, Nuxt 3 fallback via `_layers` when that Kit API is missing. Merge with Nuxt priority (higher overrides same key).
 
 ## Nitro
 

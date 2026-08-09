@@ -46,9 +46,9 @@
     "dev:prepare:mini": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxt prepare playground-mini",
     "release": "npm run lint && npm run test && npm run test:mini && npm run prepack && changelogen --release && npm publish && git push --follow-tags",
     "lint": "eslint .",
-    "test": "vitest run test/basic.test.ts test/dist-module.test.ts test/nuxt-zod-type-template.test.ts",
+    "test": "vitest run test/basic.test.ts test/dist-module.test.ts test/nuxt-zod-type-template.test.ts test/zod-schemas-template.test.ts test/layer-directories.test.ts test/layers.test.ts",
     "test:mini": "vitest run test/mini.test.ts",
-    "test:watch": "vitest watch test/basic.test.ts test/dist-module.test.ts test/nuxt-zod-type-template.test.ts",
+    "test:watch": "vitest watch test/basic.test.ts test/dist-module.test.ts test/nuxt-zod-type-template.test.ts test/zod-schemas-template.test.ts test/layer-directories.test.ts test/layers.test.ts",
     "test:types": "vue-tsc --noEmit && cd playground && vue-tsc --noEmit"
   },
   "dependencies": {

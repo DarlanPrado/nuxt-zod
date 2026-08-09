@@ -151,6 +151,8 @@ Types for your own helpers: `ValidationSchema`, `ValidationOptions`, and `InferV
 
 Place Zod **registry objects** (one default export per file) under `shared/schemas/`. The file path becomes the key path: `shared/schemas/user.ts` → `useZodSchemas().user`, and `shared/schemas/auth/login.ts` → `useZodSchemas().auth.login`. Each file must `export default` an object whose values are Zod schemas (or nested groups you choose to expose). Files named `index.ts` are ignored. Path segments with hyphens or underscores are normalized to camelCase for the property name (e.g. `my-user.ts` → `myUser`).
 
+**Nuxt layers:** `nuxt-zod` scans `schemas.dir` in **every** layer (your project, auto-scanned `layers/`, and `extends`). Merge follows Nuxt priority — the project wins over local layers, which win over `extends`. The same key path in a higher-priority layer overrides a lower one; unique keys from base layers are kept.
+
 In schema files, prefer `import { z } from 'zod'` so the same code works in every environment. It is equivalent to `const z = useZod()` in app or server code, but `shared/schemas` is not always processed by the same auto-import rules as `composables/`, so an explicit `zod` import is the most reliable option.
 
 **Client or shared UI code**
@@ -274,7 +276,7 @@ export default defineNuxtConfig({
     server: true, // Enable useZod() + #nuxt-zod/server + event.validate() in Nitro (default: true)
     schemas: {
       enabled: true, // useZodSchemas() + scan shared/schemas (default: true)
-      dir: 'shared/schemas', // root-relative directory to scan (default: 'shared/schemas')
+      dir: 'shared/schemas', // per-layer directory to scan (default: 'shared/schemas')
     },
     zodVersion: 'v4', // 'v3' | 'v4' | 'mini' — omit to log a startup warning; effective default is 'v4'
     validation: {
@@ -290,7 +292,7 @@ export default defineNuxtConfig({
 
 - **`client`** (`boolean`, default `true`) — Enables the `$zod` plugin and `useZod()` auto-import in the Nuxt app (client + SSR).
 - **`server`** (`boolean`, default `true`) — Enables `useZod()` in Nitro, the `#nuxt-zod/server` alias, and `event.validate()`.
-- **`schemas`** (`object`) — Auto-discovery for `useZodSchemas()`. Set `enabled: false` to disable. `dir` is relative to the Nuxt project root. When `client` or `server` is `false`, `useZodSchemas()` is only registered for the side that remains enabled.
+- **`schemas`** (`object`) — Auto-discovery for `useZodSchemas()`. Set `enabled: false` to disable. `dir` is relative to **each** Nuxt layer root (paths under `shared/` respect that layer’s `dir.shared`). All layers are scanned; higher-priority layers override the same key path. When `client` or `server` is `false`, `useZodSchemas()` is only registered for the side that remains enabled.
 - **`zodVersion`** (`'v3' | 'v4' | 'mini'`) — Which Zod API `useZod()`, `$zod`, and `#nuxt-zod/server` expose. See [zodVersion — v3 vs v4 vs mini](#zodversion--v3-vs-v4-vs-mini) below.
 - **`validation`** (`object`) — Defaults for `event.validate()` HTTP errors when validation fails (see next list).
 - **Contributors — runtime layout**: Implementation is split into [`src/runtime/v3/`](src/runtime/v3/), [`src/runtime/v4/`](src/runtime/v4/), and [`src/runtime/mini/`](src/runtime/mini/) with the same file names in each tree (`plugin.ts`, `composables/useZod.ts`, `server/utils/validation.ts`, `validation-types.ts`, …). The module picks one root from `nuxtZod.zodVersion`. Shared: [`src/runtime/zod-compat.ts`](src/runtime/zod-compat.ts). Public validation types (v3+v4 union) live in [`src/runtime/v4/validation-types.ts`](src/runtime/v4/validation-types.ts); `H3Event.validate` is augmented in the generated `types/nuxt-zod.d.ts` from the module. With `zodVersion: 'v3'`, run `nuxi analyze` on the playground and confirm `zod/v4` does not appear in app/server chunks that should be v3-only.
