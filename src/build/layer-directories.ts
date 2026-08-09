@@ -1,4 +1,4 @@
-import { join, resolve } from 'node:path'
+import { join, parse, resolve } from 'node:path'
 import type { Nuxt } from '@nuxt/schema'
 import { resolveAlias } from '@nuxt/kit'
 import * as nuxtKit from '@nuxt/kit'
@@ -30,7 +30,9 @@ interface LayerPathFields {
 }
 
 function stripTrailingSlash(path: string): string {
-  return path.replace(/[/\\]+$/, '')
+  const root = parse(path).root
+  const stripped = path.replace(/[/\\]+$/, '')
+  return root && stripped === root.replace(/[/\\]+$/, '') ? root : stripped
 }
 
 function defaultGetLayerDirectories(): GetLayerDirectories | false {

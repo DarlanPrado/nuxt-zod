@@ -72,6 +72,16 @@ describe('discoverSchemaFilesFromLayers', () => {
       sharedDir: join(app, 'shared'),
     })).toThrow(/cannot register nested schema under "auth"/)
   })
+
+  it('throws when the same normalized key appears twice in one layer', () => {
+    const root = makeTempRoot()
+    writeSchema(root, 'shared/schemas/foo-bar.ts', 'kebab')
+    writeSchema(root, 'shared/schemas/foo_bar.ts', 'snake')
+    const schemasRoot = join(root, 'shared/schemas')
+
+    expect(() => discoverSchemaFilesFromLayers([schemasRoot]))
+      .toThrow(/duplicate schema key "fooBar"/)
+  })
 })
 
 describe('toImportSpecifier', () => {

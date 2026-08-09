@@ -65,20 +65,26 @@ export function discoverSchemaFiles(schemasDirAbsolute: string): SchemaFileEntry
 export function discoverSchemaFilesFromLayers(
   schemaRootsHighestFirst: string[],
 ): SchemaFileEntry[] {
-  const byKey = new Map<string, SchemaFileEntry>()
+  const byKey = new Map<string, { entry: SchemaFileEntry, layerIndex: number }>()
 
-  for (const root of schemaRootsHighestFirst) {
+  for (const [layerIndex, root] of schemaRootsHighestFirst.entries()) {
     for (const entry of discoverSchemaFiles(root)) {
       const key = entry.segments.join('.')
-      if (byKey.has(key))
+      const existing = byKey.get(key)
+      if (existing?.layerIndex === layerIndex) {
+        throw new Error(
+          `nuxt-zod: duplicate schema key "${key}" in "${root}" (${existing.entry.absolutePath} vs ${entry.absolutePath})`,
+        )
+      }
+      if (existing)
         continue
-      byKey.set(key, entry)
+      byKey.set(key, { entry, layerIndex })
     }
   }
 
   return [...byKey.entries()]
     .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
-    .map(([, entry]) => entry)
+    .map(([, value]) => value.entry)
 }
 
 function setPathAtRoot(root: Record<string, TreeNode>, segments: string[], importId: string) {
