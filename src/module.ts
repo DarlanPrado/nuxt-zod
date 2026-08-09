@@ -11,9 +11,13 @@ import {
 } from '@nuxt/kit'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
+import {
+  listNuxtZodLayerDirectories,
+  resolveLayerSchemasDir,
+} from './build/layer-directories'
 import { getNuxtZodTypeTemplateContents } from './build/nuxt-zod-type-template'
 import {
-  discoverSchemaFiles,
+  discoverSchemaFilesFromLayers,
   generateUseZodSchemasSource,
   isUnderDirectory,
 } from './build/zod-schemas-template'
@@ -68,7 +72,9 @@ export interface ModuleOptions {
      */
     enabled?: boolean
     /**
-     * Directory (relative to the Nuxt project root) containing one `.ts` file per domain.
+     * Directory containing one `.ts` file per domain, relative to each Nuxt layer root.
+     * Paths under `shared/` resolve via each layer's `dir.shared`. Scanned across all layers
+     * (project first); same key paths are overridden by higher-priority layers.
      * @default 'shared/schemas'
      */
     dir?: string
@@ -166,8 +172,9 @@ export default defineNuxtModule<ModuleOptions>({
     const appConfigErrorMessages = (
       nuxt.options.appConfig as { zod?: { errors?: ZodErrorMessages } } | undefined
     )?.zod?.errors
-    const hasAppConfigFile = (nuxt.options._layers || []).some((layer) => {
-      const root = layer.config.srcDir || layer.cwd
+    const layerDirs = listNuxtZodLayerDirectories(nuxt)
+    const hasAppConfigFile = layerDirs.some((layer) => {
+      const root = layer.app
       return [
         'app.config.ts',
         'app.config.mts',
@@ -185,21 +192,25 @@ export default defineNuxtModule<ModuleOptions>({
 
     const schemasFeatureEnabled = options.schemas?.enabled !== false
     const schemasDirRelative = options.schemas?.dir ?? 'shared/schemas'
-    const schemasRootAbsolute = join(nuxt.options.rootDir, schemasDirRelative)
+    const schemasRootsAbsolute = layerDirs.map(layer =>
+      resolveLayerSchemasDir(layer, schemasDirRelative),
+    )
 
     const registerUseZodSchemas = schemasFeatureEnabled && (options.client !== false || options.server !== false)
 
     if (registerUseZodSchemas) {
+      const rootLayer = layerDirs[0]
       const importPathCtx = {
         srcDir: nuxt.options.srcDir || nuxt.options.rootDir,
         rootDir: nuxt.options.rootDir,
+        sharedDir: rootLayer?.shared,
       }
 
       const zodSchemasTemplate = addTemplate({
         filename: 'nuxt-zod-schemas.mts',
         write: true,
         getContents: () => {
-          const entries = discoverSchemaFiles(schemasRootAbsolute)
+          const entries = discoverSchemaFilesFromLayers(schemasRootsAbsolute)
           return generateUseZodSchemasSource(entries, importPathCtx)
         },
       })
@@ -222,7 +233,7 @@ export default defineNuxtModule<ModuleOptions>({
 
       if (nuxt.options.dev) {
         nuxt.hook('builder:watch', async (_event, path) => {
-          if (isUnderDirectory(schemasRootAbsolute, path)) {
+          if (schemasRootsAbsolute.some(root => isUnderDirectory(root, path))) {
             await nuxt.callHook('builder:generateApp')
           }
         })

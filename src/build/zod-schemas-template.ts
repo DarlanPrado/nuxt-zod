@@ -58,6 +58,29 @@ export function discoverSchemaFiles(schemasDirAbsolute: string): SchemaFileEntry
   return entries
 }
 
+/**
+ * Merge schema files from layer roots (highest priority first).
+ * First key wins — so the project overrides extended layers.
+ */
+export function discoverSchemaFilesFromLayers(
+  schemaRootsHighestFirst: string[],
+): SchemaFileEntry[] {
+  const byKey = new Map<string, SchemaFileEntry>()
+
+  for (const root of schemaRootsHighestFirst) {
+    for (const entry of discoverSchemaFiles(root)) {
+      const key = entry.segments.join('.')
+      if (byKey.has(key))
+        continue
+      byKey.set(key, entry)
+    }
+  }
+
+  return [...byKey.entries()]
+    .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+    .map(([, entry]) => entry)
+}
+
 function setPathAtRoot(root: Record<string, TreeNode>, segments: string[], importId: string) {
   let level: Record<string, TreeNode> = root
   for (let i = 0; i < segments.length; i++) {
@@ -104,6 +127,8 @@ function emitObjectLevel(level: Record<string, TreeNode>): string {
 export interface ImportPathContext {
   srcDir: string
   rootDir: string
+  /** Consumer project shared dir (defaults to `join(rootDir, 'shared')`). */
+  sharedDir?: string
 }
 
 export function isUnderDirectory(dir: string, filePath: string): boolean {
@@ -112,15 +137,20 @@ export function isUnderDirectory(dir: string, filePath: string): boolean {
   return f === d || f.startsWith(d.endsWith(sep) ? d : d + sep)
 }
 
-function toImportSpecifier(ctx: ImportPathContext, absoluteFile: string): string {
+/** Absolute filesystem import with forward slashes (Vite/Rollup on Windows). */
+export function absoluteImportSpecifier(absoluteFile: string): string {
+  return absoluteFile.replace(/\\/g, '/').replace(/\.ts$/, '')
+}
+
+export function toImportSpecifier(ctx: ImportPathContext, absoluteFile: string): string {
   const { srcDir, rootDir } = ctx
+  const sharedAbs = (ctx.sharedDir || join(rootDir, 'shared')).replace(/[/\\]+$/, '')
 
   let rel = relative(srcDir, absoluteFile).split(sep).join('/').replace(/\.ts$/, '')
   if (rel && !rel.startsWith('..')) {
     return `~/${rel}`
   }
 
-  const sharedAbs = join(rootDir, 'shared')
   if (isUnderDirectory(sharedAbs, absoluteFile)) {
     const fromShared = relative(sharedAbs, absoluteFile).split(sep).join('/').replace(/\.ts$/, '')
     return `#shared/${fromShared}`
@@ -131,9 +161,8 @@ function toImportSpecifier(ctx: ImportPathContext, absoluteFile: string): string
     return `~/${rel}`
   }
 
-  throw new Error(
-    `nuxt-zod: cannot build import path for schema file — keep schemas under srcDir, project root, or shared/ (${absoluteFile})`,
-  )
+  // Schemas from extended Nuxt layers live outside the consumer root.
+  return absoluteImportSpecifier(absoluteFile)
 }
 
 export function generateUseZodSchemasSource(
