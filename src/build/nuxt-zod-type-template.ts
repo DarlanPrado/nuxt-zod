@@ -20,9 +20,7 @@ export function getNuxtZodTypeTemplateContents(options: NuxtZodTypeTemplateOptio
     ? `import type * as z from '${zodSpecifier}'`
     : `import type { z } from '${zodSpecifier}'`
   // Types may use `export * as`; Nitro virtual JS uses import + re-export instead.
-  const zServerExport = isMini
-    ? `export * as z from '${zodSpecifier}'`
-    : `export { z } from '${zodSpecifier}'`
+  const publicZodType = 'Omit<typeof z, \'config\'>'
 
   const nuxtZodImports = serverEnabled
     ? `import type {
@@ -56,7 +54,7 @@ ${nuxtZodImports}
 
 declare module '#app' {
   interface NuxtApp {
-    $zod: typeof z
+    $zod: ${publicZodType}
     /** Set by consumer plugins via \`provide: { zodConfig }\` before nuxt-zod publishes \`$zod\`. */
     $zodConfig?: ZodConfigInput
   }
@@ -64,12 +62,12 @@ declare module '#app' {
 
 declare module 'vue' {
   interface ComponentCustomProperties {
-    $zod: typeof z
+    $zod: ${publicZodType}
   }
 }
 
 declare module '#nuxt-zod/server' {
-  ${zServerExport}
+  export const z: ${publicZodType}
   export const nuxtZodProviderId: '${zodVersion}'
   export function registerInjectedZodConfig(config: ZodConfigInput): void
   export type { ValidationSchema, ValidationSchemaInput, ValidationOptions, InferValidated, NuxtZodRuntimeValidation, ZodConfigInput } from 'nuxt-zod'

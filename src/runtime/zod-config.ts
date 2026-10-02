@@ -3,25 +3,44 @@
  * MUST NOT import `zod/v4` (shared across v3/v4/mini trees).
  */
 
+/** Minimal issue shape shared by Zod 3 and Zod 4 customError callbacks. */
+export type ZodConfigIssue = {
+  code?: string
+  message?: string
+  path?: PropertyKey[]
+  [key: string]: unknown
+}
+
+export type ZodConfigCustomError = (issue: ZodConfigIssue) => string | undefined
+
+/** Locale helpers are version-specific; keep a callable surface without importing Zod. */
+export type ZodConfigLocaleError = (...args: unknown[]) => unknown
+
 export type ZodConfigInput = {
-  customError?: (issue: unknown) => string | undefined
-  localeError?: unknown
+  customError?: ZodConfigCustomError
+  localeError?: ZodConfigLocaleError
   jitless?: boolean
 } & Record<string, unknown>
 
 let nitroInjectedConfig: ZodConfigInput | undefined
+let nitroConfigGeneration = 0
 
-/** Nitro-only: consumer `server/plugins/*` calls this before the module applies config. */
+/** Nitro-only: consumer `server/plugins/*` calls this before handlers use `z`. */
 export function registerInjectedZodConfig(config: ZodConfigInput): void {
   nitroInjectedConfig = config
+  nitroConfigGeneration++
 }
 
 export function getInjectedZodConfig(): ZodConfigInput | undefined {
   return nitroInjectedConfig
 }
 
-function asIssueRecord(value: unknown): Record<string, unknown> | undefined {
-  return value && typeof value === 'object' ? value as Record<string, unknown> : undefined
+export function getNitroConfigGeneration(): number {
+  return nitroConfigGeneration
+}
+
+function asIssueRecord(value: unknown): ZodConfigIssue | undefined {
+  return value && typeof value === 'object' ? value as ZodConfigIssue : undefined
 }
 
 function asString(value: unknown): string | undefined {
@@ -64,15 +83,20 @@ export function applyZodConfigToNamespace(
 }
 
 /**
- * Hides `config` on the namespace exposed as `$zod` / `useZod()` (issue #38).
+ * Public Zod namespace without `config` (issue #38). Uses a get-only proxy so non-configurable
+ * `config` on the target does not break trap invariants.
  */
-export function omitZodConfigMethod<T extends object>(zodNamespace: T): T {
+export function createPublicZodNamespace<T extends object>(zodNamespace: T): Omit<T, 'config'> {
   return new Proxy(zodNamespace, {
     get(target, prop, receiver) {
       if (prop === 'config') {
         return undefined
       }
-      return Reflect.get(target, prop, receiver)
+      const value = Reflect.get(target, prop, receiver)
+      if (typeof value === 'function') {
+        return value.bind(target)
+      }
+      return value
     },
     has(target, prop) {
       if (prop === 'config') {
@@ -80,14 +104,8 @@ export function omitZodConfigMethod<T extends object>(zodNamespace: T): T {
       }
       return Reflect.has(target, prop)
     },
-    ownKeys(target) {
-      return Reflect.ownKeys(target).filter(key => key !== 'config')
-    },
-    getOwnPropertyDescriptor(target, prop) {
-      if (prop === 'config') {
-        return undefined
-      }
-      return Reflect.getOwnPropertyDescriptor(target, prop)
-    },
-  }) as T
+  }) as Omit<T, 'config'>
 }
+
+/** @deprecated Use {@link createPublicZodNamespace}. */
+export const omitZodConfigMethod = createPublicZodNamespace

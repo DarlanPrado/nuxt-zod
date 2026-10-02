@@ -42,7 +42,12 @@ function resolveRuntimeEntry(zodRoot: string, ...pathSegments: string[]) {
 export type {
   ZodErrorMessages,
 } from './runtime/v3/zod-errors'
-export type { ZodConfigInput } from './runtime/zod-config'
+export type {
+  ZodConfigCustomError,
+  ZodConfigInput,
+  ZodConfigIssue,
+  ZodConfigLocaleError,
+} from './runtime/zod-config'
 export type {
   AnyZodSchemaPublic,
   ValidationSchema,
@@ -156,7 +161,9 @@ export default defineNuxtModule<ModuleOptions>({
         ? 'zod/v4'
         : 'zod/v3'
     const useZodComposable = resolveRuntimeEntry(zodRoot, 'composables', 'useZod')
-    const appPlugin = resolveRuntimeEntry(zodRoot, 'plugin')
+    const appPluginPre = resolveRuntimeEntry(zodRoot, 'plugin-pre')
+    const appPluginSeal = resolveRuntimeEntry(zodRoot, 'plugin-seal')
+    const serverPublicZ = resolveRuntimeEntry(zodRoot, 'server', 'public-z')
     const serverUseZod = resolveRuntimeEntry(zodRoot, 'server/utils', 'useZod')
     const serverPlugin = resolveRuntimeEntry(zodRoot, 'server', 'plugin')
     const zodConfigModule = resolveRuntimeEntry(resolve('./runtime'), 'zod-config')
@@ -244,8 +251,9 @@ export default defineNuxtModule<ModuleOptions>({
 
     // ─── App-side (client + SSR) ──────────────────────────────────────────
     if (options.client !== false) {
-      // Provides $zod on the NuxtApp instance
-      addPlugin(appPlugin)
+      // Lazy $zod (pre) + seal after consumer plugins provide $zodConfig (post)
+      addPlugin(appPluginPre)
+      addPlugin(appPluginSeal, { append: true })
       if (hasGlobalZodErrorMessages) {
         // Register error-map bootstrap only when app.config declares zod.errors.
         addPlugin(appPluginErrors)
@@ -301,18 +309,12 @@ export default defineNuxtModule<ModuleOptions>({
       nuxt.hook('nitro:config', (nitroConfig) => {
         nitroConfig.virtual ||= {}
         const registerZodConfigExport = `export { registerInjectedZodConfig } from '${zodConfigModule}'`
-        nitroConfig.virtual['#nuxt-zod/server'] = zodVersion === 'mini'
-          ? [
-              registerZodConfigExport,
-              `import * as z from '${zodSpecifier}'`,
-              'export { z }',
-              `export const nuxtZodProviderId = '${zodVersion}'`,
-            ].join('\n')
-          : [
-              registerZodConfigExport,
-              `export { z } from '${zodSpecifier}'`,
-              `export const nuxtZodProviderId = '${zodVersion}'`,
-            ].join('\n')
+        const publicZExport = `export { z } from '${serverPublicZ}'`
+        nitroConfig.virtual['#nuxt-zod/server'] = [
+          registerZodConfigExport,
+          publicZExport,
+          `export const nuxtZodProviderId = '${zodVersion}'`,
+        ].join('\n')
       })
     }
 

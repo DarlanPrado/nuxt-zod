@@ -1,16 +1,20 @@
 import { z } from 'zod/v3'
 import {
   applyZodConfigToNamespace,
+  createPublicZodNamespace,
   getInjectedZodConfig,
-  omitZodConfigMethod,
+  getNitroConfigGeneration,
 } from '../../zod-config'
 
-let publicZod: typeof z | undefined
+let publicZod: Omit<typeof z, 'config'> | undefined
+let generationApplied = -1
 
-export function getNuxtZodServerNamespace(): typeof z {
-  if (!publicZod) {
+export function getNuxtZodServerNamespace(): Omit<typeof z, 'config'> {
+  const generation = getNitroConfigGeneration()
+  if (!publicZod || generationApplied !== generation) {
     applyZodConfigToNamespace(z, getInjectedZodConfig())
-    publicZod = omitZodConfigMethod(z)
+    publicZod = createPublicZodNamespace(z)
+    generationApplied = generation
   }
   return publicZod
 }
