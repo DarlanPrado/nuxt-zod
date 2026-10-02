@@ -1,5 +1,5 @@
 export default defineNuxtPlugin({
-  dependsOn: ['consumer-zod-config'],
+  dependsOn: ['nuxt-zod', 'consumer-zod-config'],
   setup(nuxtApp) {
     const parsed = nuxtApp.$zod.string().safeParse(123)
     return {

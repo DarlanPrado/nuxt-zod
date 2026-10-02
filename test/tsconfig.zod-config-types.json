@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": true,
+    "types": [],
+    "paths": {
+      "#app": ["./zod-config-types-app-shim.ts"]
+    }
+  },
+  "include": ["zod-config.types.ts"]
+}

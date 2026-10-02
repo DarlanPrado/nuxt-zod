@@ -6,5 +6,8 @@ export default defineNuxtConfig({
   ],
   nuxtZod: {
     zodVersion: 'v4',
+    errors: {
+      invalid_type: 'isolation-nitro-zod-errors',
+    },
   },
 })

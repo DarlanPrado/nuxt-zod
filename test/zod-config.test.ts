@@ -8,10 +8,12 @@ import {
   resetZodConfigContextState,
 } from '../src/runtime/zod-context-config'
 
+const noopBeforeParse = () => {}
+
 describe('zod-config helpers', () => {
   it('omits config on the public namespace without inconsistent traps', () => {
     const target = { config: () => {}, string: () => 'x' }
-    const publicNs = createPublicZodNamespace(target)
+    const publicNs = createPublicZodNamespace(target, { beforeParse: noopBeforeParse })
     expect(publicNs.config).toBeUndefined()
     expect('config' in publicNs).toBe(false)
     expect(Object.getOwnPropertyDescriptor(publicNs, 'config')).toBeUndefined()
@@ -20,16 +22,20 @@ describe('zod-config helpers', () => {
 
   it('hides non-configurable config on real Zod namespace', async () => {
     const { z } = await import('zod/v4')
-    const publicNs = createPublicZodNamespace(z)
+    const publicNs = createPublicZodNamespace(z, { beforeParse: noopBeforeParse })
     expect(publicNs.config).toBeUndefined()
     expect('config' in publicNs).toBe(false)
     expect(Object.getOwnPropertyDescriptor(publicNs, 'config')).toBeUndefined()
+    expect(Object.keys(publicNs).length).toBeGreaterThan(0)
     expect(publicNs.string().safeParse(1).success).toBe(false)
   })
 
   it('switches app and nitro config without leaking customError', async () => {
     resetZodConfigContextState()
     const { z } = await import('zod/v4')
+    const { registerNitroZodEffectiveBaseline, registerAppZodEffectiveBaseline } = await import('../src/runtime/zod-context-config')
+    registerNitroZodEffectiveBaseline(z)
+    registerAppZodEffectiveBaseline(z)
 
     prepareAppZodConfig(z, { customError: () => 'app-only' })
     expect(z.string().safeParse(1).error?.issues[0]?.message).toBe('app-only')
@@ -52,6 +58,22 @@ describe('nuxt-zod $zodConfig fixture', async () => {
     const html = await $fetch('/')
     expect(html).toContain('injected-app-zod-config')
     expect(html).toContain('config-hidden-ok')
+    expect(html).toContain('consumer-plugin-ok')
+  })
+
+  it('round-trips distinct app and nitro messages (SSR → Nitro → SSR)', async () => {
+    const htmlBefore = await $fetch('/')
+    expect(htmlBefore).toContain('injected-app-zod-config')
+
+    const nitro = await $fetch('/api/zod-config', { method: 'POST' }) as {
+      message: string
+      configHidden: boolean
+    }
+    expect(nitro.message).toBe('injected-nitro-zod-config')
+    expect(nitro.configHidden).toBe(true)
+
+    const htmlAfter = await $fetch('/')
+    expect(htmlAfter).toContain('injected-app-zod-config')
   })
 
   it('applies registerInjectedZodConfig on Nitro before useZod()', async () => {
@@ -70,5 +92,23 @@ describe('nuxt-zod $zodConfig fixture', async () => {
     }
     expect(result.message).toBe('injected-nitro-zod-config')
     expect(result.configHidden).toBe(true)
+  })
+
+  it('applies nitro config before parse on module-load schema (virtual-z-registration)', async () => {
+    const result = await $fetch('/api/virtual-z-registration') as { message: string }
+    expect(result.message).toBe('updated virtual config')
+  })
+
+  it('keeps app and nitro configs isolated under concurrent SSR and API work', async () => {
+    const htmlPromise = $fetch('/zod-config-concurrency')
+    await new Promise<void>(resolve => setTimeout(resolve, 10))
+    const nitroPromise = $fetch('/api/concurrency-yield', { method: 'POST' })
+    const [html, nitro] = await Promise.all([htmlPromise, nitroPromise]) as [
+      string,
+      { message: string },
+    ]
+
+    expect(html).toContain('injected-app-zod-config')
+    expect(nitro.message).toBe('injected-nitro-zod-config')
   })
 })

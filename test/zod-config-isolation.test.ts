@@ -16,6 +16,7 @@ describe('zod-config app vs nitro isolation', async () => {
       configIn: boolean
       configDescriptorType: string
     }
+    expect(nitro.message).toBe('isolation-nitro-zod-errors')
     expect(nitro.message).not.toBe('isolation-app-message')
     expect(nitro.configIn).toBe(false)
     expect(nitro.configDescriptorType).toBe('undefined')

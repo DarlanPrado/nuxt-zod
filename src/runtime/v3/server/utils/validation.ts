@@ -1,7 +1,9 @@
 import { createError, getQuery, getRouterParams, readBody } from 'h3'
 import type { H3Event } from 'h3'
 import { useRuntimeConfig } from 'nitropack/runtime'
+import { prepareNitroZodConfig } from '../../../zod-config'
 import { safeParseAsync, type AnyZodSchema } from '../../zod-adapter'
+import { z } from '../../zod-nitro'
 import type {
   InferValidated,
   NuxtZodRuntimeValidation,
@@ -63,6 +65,7 @@ export async function runEventValidation<T extends ValidationSchemaInput>(
   schema: T,
   options?: ValidationOptions,
 ): Promise<InferValidated<T>> {
+  prepareNitroZodConfig(z, undefined, event.context)
   if (!schema.body && !schema.query && !schema.params) {
     throw createError({
       statusCode: 500,

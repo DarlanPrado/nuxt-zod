@@ -1,3 +1,4 @@
+import { useRequestEvent } from '#app'
 import { createPublicZodNamespace, prepareAppZodConfig } from './zod-config'
 
 type AppZodRuntimeState<T extends object> = {
@@ -36,8 +37,12 @@ export function resolveAppZodNamespace<T extends object>(
   if (!state) {
     throw new Error('[nuxt-zod] App Zod runtime is not initialized yet.')
   }
-  prepareAppZodConfig(state.rawZ, readZodConfig(nuxtApp))
-  state.publicZod ??= createPublicZodNamespace(state.rawZ)
+  const requestContext = import.meta.server ? useRequestEvent()?.context : undefined
+  const beforeParse = () => {
+    prepareAppZodConfig(state.rawZ, readZodConfig(nuxtApp), requestContext)
+  }
+  beforeParse()
+  state.publicZod ??= createPublicZodNamespace(state.rawZ, { beforeParse })
   return state.publicZod
 }
 
@@ -59,17 +64,16 @@ export function createAppZodAccessProxy<T extends object>(
         return undefined
       }
       const namespace = resolveAppZodNamespace<T>(nuxtApp)
-      const value = Reflect.get(namespace, prop, namespace)
-      if (typeof value === 'function') {
-        return value.bind(namespace)
-      }
-      return value
+      return Reflect.get(namespace, prop, namespace)
     },
     has(_target, prop) {
       if (prop === 'config') {
         return false
       }
       return Reflect.has(resolveAppZodNamespace<T>(nuxtApp), prop)
+    },
+    ownKeys() {
+      return Reflect.ownKeys(resolveAppZodNamespace<T>(nuxtApp))
     },
     getOwnPropertyDescriptor(_target, prop) {
       if (prop === 'config') {

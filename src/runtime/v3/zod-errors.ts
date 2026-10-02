@@ -48,13 +48,16 @@ function resolveTypeMessage(
   return asString(typeConfig.default)
 }
 
-export function applyGlobalZodErrorMessages(messages?: ZodErrorMessages) {
+export function applyGlobalZodErrorMessages(
+  messages?: ZodErrorMessages,
+  options?: { force?: boolean },
+) {
   if (!messages) {
     return
   }
 
   const signature = JSON.stringify(messages)
-  if (appliedSignature === signature) {
+  if (!options?.force && appliedSignature === signature) {
     return
   }
 
