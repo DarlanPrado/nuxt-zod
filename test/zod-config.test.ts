@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import { describe, it, expect } from 'vitest'
-import { setup, $fetch } from '@nuxt/test-utils/e2e'
+import { setup, $fetch, fetch as testFetch } from '@nuxt/test-utils/e2e'
 import { createPublicZodNamespace } from '../src/runtime/zod-config'
 import {
   prepareAppZodConfig,
@@ -28,6 +28,22 @@ describe('zod-config helpers', () => {
     expect(Object.getOwnPropertyDescriptor(publicNs, 'config')).toBeUndefined()
     expect(Object.keys(publicNs).length).toBeGreaterThan(0)
     expect(publicNs.string().safeParse(1).success).toBe(false)
+  })
+
+  it('re-prepares before parse on schemas from non-configurable factories', async () => {
+    resetZodConfigContextState()
+    const { z } = await import('zod/v4')
+    const { registerNitroZodEffectiveBaseline, registerAppZodEffectiveBaseline } = await import('../src/runtime/zod-context-config')
+    registerNitroZodEffectiveBaseline(z)
+    registerAppZodEffectiveBaseline(z)
+
+    const publicNs = createPublicZodNamespace(z, {
+      beforeParse: () => prepareAppZodConfig(z, { customError: () => 'app-stored-schema' }),
+    })
+    const storedSchema = publicNs.string()
+    prepareNitroZodConfig(z, { customError: () => 'nitro-pollution' })
+    const message = storedSchema.safeParse(1).error?.issues[0]?.message
+    expect(message).toBe('app-stored-schema')
   })
 
   it('switches app and nitro config without leaking customError', async () => {
@@ -97,6 +113,37 @@ describe('nuxt-zod $zodConfig fixture', async () => {
   it('applies nitro config before parse on module-load schema (virtual-z-registration)', async () => {
     const result = await $fetch('/api/virtual-z-registration') as { message: string }
     expect(result.message).toBe('updated virtual config')
+  })
+
+  it('keeps app config when schema is created before await under concurrent work', async () => {
+    const htmlPromise = $fetch('/zod-config-schema-before-await')
+    await new Promise<void>(resolve => setTimeout(resolve, 10))
+    const nitroPromise = $fetch('/api/concurrency-yield', { method: 'POST' })
+    const [html, nitro] = await Promise.all([htmlPromise, nitroPromise]) as [
+      string,
+      { message: string },
+    ]
+
+    expect(html).toContain('injected-app-zod-config')
+    expect(nitro.message).toBe('injected-nitro-zod-config')
+  })
+
+  it('re-prepares nitro config in event.validate after await under concurrent SSR', async () => {
+    const htmlPromise = $fetch('/zod-config-schema-before-await')
+    await new Promise<void>(resolve => setTimeout(resolve, 10))
+    const validatePromise = testFetch('/api/validate-concurrency-yield', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 123 }),
+    })
+    const [html, validateRes] = await Promise.all([htmlPromise, validatePromise])
+    const validatePayload = await validateRes.json() as {
+      data?: { issues?: { body?: Array<{ message?: string }> } }
+    }
+
+    expect(html).toContain('injected-app-zod-config')
+    expect(validateRes.status).toBe(422)
+    expect(validatePayload.data?.issues?.body?.[0]?.message).toBe('injected-nitro-zod-config')
   })
 
   it('keeps app and nitro configs isolated under concurrent SSR and API work', async () => {

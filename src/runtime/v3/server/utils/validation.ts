@@ -65,7 +65,6 @@ export async function runEventValidation<T extends ValidationSchemaInput>(
   schema: T,
   options?: ValidationOptions,
 ): Promise<InferValidated<T>> {
-  prepareNitroZodConfig(z, undefined, event.context)
   if (!schema.body && !schema.query && !schema.params) {
     throw createError({
       statusCode: 500,
@@ -83,6 +82,7 @@ export async function runEventValidation<T extends ValidationSchemaInput>(
 
   if (schema.body) {
     const body = await readBody(event)
+    prepareNitroZodConfig(z, undefined, event.context)
     const result = await safeParseAsync(schema.body as AnyZodSchema, body)
     if (!result.success) {
       issues ||= {}
@@ -95,6 +95,7 @@ export async function runEventValidation<T extends ValidationSchemaInput>(
 
   if (schema.query) {
     const query = getQuery(event)
+    prepareNitroZodConfig(z, undefined, event.context)
     const result = await safeParseAsync(schema.query as AnyZodSchema, query)
     if (!result.success) {
       issues ||= {}
@@ -107,6 +108,7 @@ export async function runEventValidation<T extends ValidationSchemaInput>(
 
   if (schema.params) {
     const params = getRouterParams(event)
+    prepareNitroZodConfig(z, undefined, event.context)
     const result = await safeParseAsync(schema.params as AnyZodSchema, params)
     if (!result.success) {
       issues ||= {}

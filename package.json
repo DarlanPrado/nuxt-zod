@@ -13,9 +13,7 @@
   },
   "license": "MIT",
   "type": "module",
-  "sideEffects": [
-    "src/runtime/**/*.ts"
-  ],
+  "sideEffects": false,
   "exports": {
     ".": {
       "types": "./dist/types.d.mts",

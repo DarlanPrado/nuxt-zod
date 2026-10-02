@@ -314,14 +314,6 @@ export default defineNuxtModule<ModuleOptions>({
       // Mini uses namespace import + re-export (`export * as` is not reliably parsed in Nitro virtuals).
       // Virtual source is plain JS (no `as const`) so Rollup can parse it without a TS plugin.
       nuxt.hook('nitro:config', (nitroConfig) => {
-        nitroConfig.moduleSideEffects ||= []
-        for (const sideEffectEntry of [
-          resolve('./runtime/zod-context-config.ts'),
-          resolve('./runtime/nitro-zod-config.ts'),
-          resolve('./runtime/nitro-zod-parse-guard.ts'),
-        ]) {
-          nitroConfig.moduleSideEffects.push(sideEffectEntry)
-        }
         nitroConfig.virtual ||= {}
         const registerZodConfigExport = `export { registerInjectedZodConfig } from '${nitroZodConfigModule}'`
         const publicZExport = `export { z } from '${serverPublicZ}'`

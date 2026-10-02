@@ -28,6 +28,10 @@ function wrapParseMethods(value: unknown, beforeParse: () => void): unknown {
         }
       }
       const next = Reflect.get(target, prop, receiver)
+      const descriptor = Reflect.getOwnPropertyDescriptor(target, prop)
+      if (descriptor && !descriptor.configurable) {
+        return next
+      }
       if (typeof next === 'function') {
         return (...args: unknown[]) => wrapParseMethods(
           (next as (...a: unknown[]) => unknown).apply(target, args),
@@ -71,7 +75,11 @@ export function createPublicZodNamespace<T extends object>(
       }
       const descriptor = Reflect.getOwnPropertyDescriptor(zodNamespace, prop)
       if (descriptor && !descriptor.configurable) {
-        return Reflect.get(zodNamespace, prop, zodNamespace)
+        const pinned = Reflect.get(zodNamespace, prop, zodNamespace)
+        if (typeof pinned === 'function') {
+          return wrapCallable(pinned as (...args: unknown[]) => unknown, beforeParse, zodNamespace)
+        }
+        return pinned
       }
       const value = Reflect.get(zodNamespace, prop, zodNamespace)
       if (typeof value === 'function') {
