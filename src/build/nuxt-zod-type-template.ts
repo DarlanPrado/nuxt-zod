@@ -55,7 +55,10 @@ ${nuxtZodImports}
 declare module '#app' {
   interface NuxtApp {
     $zod: ${publicZodType}
-    /** Set by consumer plugins via \`provide: { zodConfig }\` before nuxt-zod publishes \`$zod\`. */
+    /**
+     * Set by consumer plugins via \`provide: { zodConfig }\` (available after the plugin setup returns).
+     * Not visible to \`useZod()\` in the same plugin body before return; use a separate plugin or Nitro \`registerInjectedZodConfig\`.
+     */
     $zodConfig?: ZodConfigInput
   }
 }

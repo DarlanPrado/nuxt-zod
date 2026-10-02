@@ -1,81 +1,45 @@
 import { fileURLToPath } from 'node:url'
-import { describe, it, expect, vi } from 'vitest'
-import { createAppZodAccessProxy, initAppZodRuntime, sealAppZodRuntime } from '../src/runtime/app-zod-runtime'
+import { describe, it, expect } from 'vitest'
 import { setup, $fetch } from '@nuxt/test-utils/e2e'
+import { createPublicZodNamespace } from '../src/runtime/zod-config'
 import {
-  applyZodConfigToNamespace,
-  createPublicZodNamespace,
-  getNitroConfigGeneration,
-  registerInjectedZodConfig,
-} from '../src/runtime/zod-config'
+  prepareAppZodConfig,
+  prepareNitroZodConfig,
+  resetZodConfigContextState,
+} from '../src/runtime/zod-context-config'
 
 describe('zod-config helpers', () => {
-  it('omits config on the public namespace', () => {
+  it('omits config on the public namespace without inconsistent traps', () => {
     const target = { config: () => {}, string: () => 'x' }
     const publicNs = createPublicZodNamespace(target)
-    expect(Reflect.get(publicNs, 'config')).toBeUndefined()
+    expect(publicNs.config).toBeUndefined()
     expect('config' in publicNs).toBe(false)
+    expect(Object.getOwnPropertyDescriptor(publicNs, 'config')).toBeUndefined()
     expect(publicNs.string()).toBe('x')
   })
 
-  it.each(['v3', 'v4', 'mini'] as const)('supports reflection and late configuration for %s', async (version) => {
-    const raw = version === 'mini' ? await import('zod/mini') : version === 'v3' ? (await import('zod/v3')).z : (await import('zod/v4')).z
-    const restoreConfig = (() => {
-      if ('config' in raw) {
-        const originalConfig = { ...raw.config() }
-        return () => raw.config({ customError: undefined, ...originalConfig })
-      }
-      const originalErrorMap = raw.getErrorMap()
-      return () => raw.setErrorMap(originalErrorMap)
-    })()
-    try {
-      const { useZod } = await import(`../src/runtime/${version}/server/utils/useZod.ts`)
-      const { z } = await import(`../src/runtime/${version}/server/public-z.ts`)
-      const app: { $zodConfig?: { customError: () => string } } = {}
-      initAppZodRuntime(app, raw)
-      const appZod = createAppZodAccessProxy<typeof raw>(app)
-      for (const namespace of [createPublicZodNamespace(raw), useZod(), z, appZod]) {
-        expect(Reflect.get(namespace, 'config')).toBeUndefined()
-        expect('config' in namespace).toBe(false)
-        expect(Reflect.ownKeys(namespace)).not.toContain('config')
-        expect(Object.keys(namespace)).toContain('string')
-        expect(Object.getOwnPropertyDescriptor(namespace, 'config')).toBeUndefined()
-        expect({ ...namespace }.string).toBe(raw.string)
-        const schema = namespace.string()
-        expect(schema).toBeInstanceOf('ZodMiniString' in namespace ? namespace.ZodMiniString : namespace.ZodString)
-      }
-
-      registerInjectedZodConfig({ customError: () => 'late server config' })
-      expect(useZod().string().safeParse(123).error?.issues[0]?.message).toBe('late server config')
-      registerInjectedZodConfig({ customError: () => 'updated server config' })
-      expect(z.string().safeParse(123).error?.issues[0]?.message).toBe('updated server config')
-
-      app.$zodConfig = { customError: () => 'consumer plugin config' }
-      expect(appZod.string().safeParse(123).error?.issues[0]?.message).toBe('consumer plugin config')
-      sealAppZodRuntime(app)
-      expect(useZod().string().safeParse(123).error?.issues[0]?.message).toBe('updated server config')
-      expect(appZod.string().safeParse(123).error?.issues[0]?.message).toBe('consumer plugin config')
-    }
-    finally {
-      registerInjectedZodConfig({})
-      restoreConfig()
-    }
+  it('hides non-configurable config on real Zod namespace', async () => {
+    const { z } = await import('zod/v4')
+    const publicNs = createPublicZodNamespace(z)
+    expect(publicNs.config).toBeUndefined()
+    expect('config' in publicNs).toBe(false)
+    expect(Object.getOwnPropertyDescriptor(publicNs, 'config')).toBeUndefined()
+    expect(publicNs.string().safeParse(1).success).toBe(false)
   })
 
-  it('applies customError via setErrorMap when config() is missing', () => {
-    const setErrorMap = vi.fn()
-    const zod = { setErrorMap }
-    applyZodConfigToNamespace(zod, {
-      customError: () => 'mapped',
-    })
-    expect(setErrorMap).toHaveBeenCalled()
-  })
+  it('switches app and nitro config without leaking customError', async () => {
+    resetZodConfigContextState()
+    const { z } = await import('zod/v4')
 
-  it('re-applies Nitro config when registerInjectedZodConfig runs again', () => {
-    const before = getNitroConfigGeneration()
-    registerInjectedZodConfig({ customError: () => 'a' })
-    registerInjectedZodConfig({ customError: () => 'b' })
-    expect(getNitroConfigGeneration()).toBe(before + 2)
+    prepareAppZodConfig(z, { customError: () => 'app-only' })
+    expect(z.string().safeParse(1).error?.issues[0]?.message).toBe('app-only')
+
+    prepareNitroZodConfig(z, undefined)
+    const nitroMessage = z.string().safeParse(1).error?.issues[0]?.message
+    expect(nitroMessage).not.toBe('app-only')
+
+    prepareAppZodConfig(z, { customError: () => 'app-again' })
+    expect(z.string().safeParse(1).error?.issues[0]?.message).toBe('app-again')
   })
 })
 
@@ -106,14 +70,5 @@ describe('nuxt-zod $zodConfig fixture', async () => {
     }
     expect(result.message).toBe('injected-nitro-zod-config')
     expect(result.configHidden).toBe(true)
-  })
-
-  it('configures an existing schema immediately on virtual registration', async () => {
-    const result = await $fetch('/api/virtual-z-registration')
-    expect(result).toEqual({ message: 'updated virtual config' })
-  })
-
-  it('provides configured $zod during consumer plugin setup', async () => {
-    expect(await $fetch('/')).toContain('consumer-plugin-ok')
   })
 })

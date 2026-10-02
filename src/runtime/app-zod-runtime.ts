@@ -1,17 +1,15 @@
-import type { ZodConfigInput } from './zod-config'
-import { applyZodConfigToNamespace, createPublicZodNamespace } from './zod-config'
+import { createPublicZodNamespace, prepareAppZodConfig } from './zod-config'
 
 type AppZodRuntimeState<T extends object> = {
   rawZ: T
   sealed: boolean
-  lastConfig: ZodConfigInput | undefined
   publicZod: Omit<T, 'config'> | undefined
 }
 
 const appStates = new WeakMap<object, AppZodRuntimeState<object>>()
 
-function readZodConfig(nuxtApp: object): ZodConfigInput | undefined {
-  return (nuxtApp as { $zodConfig?: ZodConfigInput }).$zodConfig
+function readZodConfig(nuxtApp: object): Record<string, unknown> | undefined {
+  return (nuxtApp as { $zodConfig?: Record<string, unknown> }).$zodConfig
 }
 
 function getState<T extends object>(nuxtApp: object, rawZ: T): AppZodRuntimeState<T> {
@@ -20,7 +18,6 @@ function getState<T extends object>(nuxtApp: object, rawZ: T): AppZodRuntimeStat
     state = {
       rawZ,
       sealed: false,
-      lastConfig: undefined,
       publicZod: undefined,
     }
     appStates.set(nuxtApp, state)
@@ -39,18 +36,8 @@ export function resolveAppZodNamespace<T extends object>(
   if (!state) {
     throw new Error('[nuxt-zod] App Zod runtime is not initialized yet.')
   }
-
-  const config = readZodConfig(nuxtApp)
-  applyZodConfigToNamespace(state.rawZ, config)
-  if (!state.sealed || config !== state.lastConfig) {
-    state.publicZod = createPublicZodNamespace(state.rawZ)
-    state.lastConfig = config
-  }
-
-  if (!state.publicZod) {
-    state.publicZod = createPublicZodNamespace(state.rawZ)
-  }
-
+  prepareAppZodConfig(state.rawZ, readZodConfig(nuxtApp))
+  state.publicZod ??= createPublicZodNamespace(state.rawZ)
   return state.publicZod
 }
 
@@ -66,12 +53,29 @@ export function sealAppZodRuntime(nuxtApp: object): void {
 export function createAppZodAccessProxy<T extends object>(
   nuxtApp: object,
 ): Omit<T, 'config'> {
-  const state = appStates.get(nuxtApp) as AppZodRuntimeState<T> | undefined
-  if (!state) {
-    throw new Error('[nuxt-zod] App Zod runtime is not initialized yet.')
-  }
-  return createPublicZodNamespace(
-    state.rawZ,
-    () => resolveAppZodNamespace<T>(nuxtApp),
-  )
+  return new Proxy({} as Omit<T, 'config'>, {
+    get(_target, prop) {
+      if (prop === 'config') {
+        return undefined
+      }
+      const namespace = resolveAppZodNamespace<T>(nuxtApp)
+      const value = Reflect.get(namespace, prop, namespace)
+      if (typeof value === 'function') {
+        return value.bind(namespace)
+      }
+      return value
+    },
+    has(_target, prop) {
+      if (prop === 'config') {
+        return false
+      }
+      return Reflect.has(resolveAppZodNamespace<T>(nuxtApp), prop)
+    },
+    getOwnPropertyDescriptor(_target, prop) {
+      if (prop === 'config') {
+        return undefined
+      }
+      return Reflect.getOwnPropertyDescriptor(resolveAppZodNamespace<T>(nuxtApp), prop)
+    },
+  })
 }

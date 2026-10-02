@@ -1,12 +1,12 @@
 import type * as zType from 'zod/mini'
 import { defineNuxtPlugin } from '#app'
 import { createAppZodAccessProxy, initAppZodRuntime } from '../app-zod-runtime'
+import { z } from './zod-app'
 
 export default defineNuxtPlugin({
   name: 'nuxt-zod',
   enforce: 'pre',
-  async setup(nuxtApp) {
-    const z = await import('zod/mini')
+  setup(nuxtApp) {
     initAppZodRuntime(nuxtApp, z)
     return {
       provide: {

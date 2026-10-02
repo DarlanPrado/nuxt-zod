@@ -42,12 +42,10 @@ function resolveRuntimeEntry(zodRoot: string, ...pathSegments: string[]) {
 export type {
   ZodErrorMessages,
 } from './runtime/v3/zod-errors'
-export type {
-  ZodConfigCustomError,
-  ZodConfigInput,
-  ZodConfigIssue,
-  ZodConfigLocaleError,
-} from './runtime/zod-config'
+export type { ZodConfigInput as ZodV3ConfigInput } from './runtime/v3/zod-config-types'
+export type { ZodConfigInput as ZodV4ConfigInput } from './runtime/v4/zod-config-types'
+export type { ZodConfigInput as ZodMiniConfigInput } from './runtime/mini/zod-config-types'
+export type { ZodConfigInput } from './runtime/v4/zod-config-types'
 export type {
   AnyZodSchemaPublic,
   ValidationSchema,
@@ -163,11 +161,10 @@ export default defineNuxtModule<ModuleOptions>({
     const useZodComposable = resolveRuntimeEntry(zodRoot, 'composables', 'useZod')
     const appPluginPre = resolveRuntimeEntry(zodRoot, 'plugin-pre')
     const appPluginSeal = resolveRuntimeEntry(zodRoot, 'plugin-seal')
-    const serverZodProvider = resolveRuntimeEntry(zodRoot, 'server', 'zod-provider')
     const serverPublicZ = resolveRuntimeEntry(zodRoot, 'server', 'public-z')
     const serverUseZod = resolveRuntimeEntry(zodRoot, 'server/utils', 'useZod')
     const serverPlugin = resolveRuntimeEntry(zodRoot, 'server', 'plugin')
-    const zodConfigModule = resolveRuntimeEntry(resolve('./runtime'), 'zod-config')
+    const nitroZodConfigModule = resolveRuntimeEntry(resolve('./runtime'), 'nitro-zod-config')
     const appPluginErrors = resolveRuntimeEntry(zodRoot, 'plugin-errors')
     const serverPluginErrors = resolveRuntimeEntry(zodRoot, 'server', 'plugin-errors')
 
@@ -304,16 +301,12 @@ export default defineNuxtModule<ModuleOptions>({
       }
 
       // Explicit import alias: import { z } from '#nuxt-zod/server'
-      // Exposes the selected provider's public namespace and applies registration to its runtime.
+      // Re-exports `z` from `zod/v3`, `zod/v4`, or `zod/mini` per `nuxtZod.zodVersion` (no extra provider shim).
+      // Mini uses namespace import + re-export (`export * as` is not reliably parsed in Nitro virtuals).
       // Virtual source is plain JS (no `as const`) so Rollup can parse it without a TS plugin.
       nuxt.hook('nitro:config', (nitroConfig) => {
         nitroConfig.virtual ||= {}
-        const registerZodConfigExport = `import { registerInjectedZodConfig as registerConfig } from '${zodConfigModule}'
-import { getNuxtZodServerNamespace } from '${serverZodProvider}'
-export function registerInjectedZodConfig(config) {
-  registerConfig(config)
-  getNuxtZodServerNamespace()
-}`
+        const registerZodConfigExport = `export { registerInjectedZodConfig } from '${nitroZodConfigModule}'`
         const publicZExport = `export { z } from '${serverPublicZ}'`
         nitroConfig.virtual['#nuxt-zod/server'] = [
           registerZodConfigExport,
