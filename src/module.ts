@@ -42,6 +42,7 @@ function resolveRuntimeEntry(zodRoot: string, ...pathSegments: string[]) {
 export type {
   ZodErrorMessages,
 } from './runtime/v3/zod-errors'
+export type { ZodConfigInput } from './runtime/zod-config'
 export type {
   AnyZodSchemaPublic,
   ValidationSchema,
@@ -158,6 +159,7 @@ export default defineNuxtModule<ModuleOptions>({
     const appPlugin = resolveRuntimeEntry(zodRoot, 'plugin')
     const serverUseZod = resolveRuntimeEntry(zodRoot, 'server/utils', 'useZod')
     const serverPlugin = resolveRuntimeEntry(zodRoot, 'server', 'plugin')
+    const zodConfigModule = resolveRuntimeEntry(resolve('./runtime'), 'zod-config')
     const appPluginErrors = resolveRuntimeEntry(zodRoot, 'plugin-errors')
     const serverPluginErrors = resolveRuntimeEntry(zodRoot, 'server', 'plugin-errors')
 
@@ -298,13 +300,16 @@ export default defineNuxtModule<ModuleOptions>({
       // Virtual source is plain JS (no `as const`) so Rollup can parse it without a TS plugin.
       nuxt.hook('nitro:config', (nitroConfig) => {
         nitroConfig.virtual ||= {}
+        const registerZodConfigExport = `export { registerInjectedZodConfig } from '${zodConfigModule}'`
         nitroConfig.virtual['#nuxt-zod/server'] = zodVersion === 'mini'
           ? [
+              registerZodConfigExport,
               `import * as z from '${zodSpecifier}'`,
               'export { z }',
               `export const nuxtZodProviderId = '${zodVersion}'`,
             ].join('\n')
           : [
+              registerZodConfigExport,
               `export { z } from '${zodSpecifier}'`,
               `export const nuxtZodProviderId = '${zodVersion}'`,
             ].join('\n')

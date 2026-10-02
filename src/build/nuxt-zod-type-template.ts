@@ -26,12 +26,14 @@ export function getNuxtZodTypeTemplateContents(options: NuxtZodTypeTemplateOptio
 
   const nuxtZodImports = serverEnabled
     ? `import type {
+  ZodConfigInput,
   ZodErrorMessages,
   ValidationSchemaInput,
   ValidationOptions,
   InferValidated,
 } from 'nuxt-zod'`
     : `import type {
+  ZodConfigInput,
   ZodErrorMessages,
 } from 'nuxt-zod'`
 
@@ -55,6 +57,8 @@ ${nuxtZodImports}
 declare module '#app' {
   interface NuxtApp {
     $zod: typeof z
+    /** Set by consumer plugins via \`provide: { zodConfig }\` before nuxt-zod publishes \`$zod\`. */
+    $zodConfig?: ZodConfigInput
   }
 }
 
@@ -67,7 +71,8 @@ declare module 'vue' {
 declare module '#nuxt-zod/server' {
   ${zServerExport}
   export const nuxtZodProviderId: '${zodVersion}'
-  export type { ValidationSchema, ValidationSchemaInput, ValidationOptions, InferValidated, NuxtZodRuntimeValidation } from 'nuxt-zod'
+  export function registerInjectedZodConfig(config: ZodConfigInput): void
+  export type { ValidationSchema, ValidationSchemaInput, ValidationOptions, InferValidated, NuxtZodRuntimeValidation, ZodConfigInput } from 'nuxt-zod'
 }
 ${h3Augment}
 declare module 'nuxt/schema' {
