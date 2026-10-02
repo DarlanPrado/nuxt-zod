@@ -1,7 +1,8 @@
-import { z as zRuntime } from 'zod/v3'
 import { getNuxtZodServerNamespace } from './zod-provider'
 
-export const z: Omit<typeof zRuntime, 'config'> = new Proxy({} as Omit<typeof zRuntime, 'config'>, {
+type ZodNamespace = typeof import('zod/v3').z
+
+export const z: Omit<ZodNamespace, 'config'> = new Proxy({} as Omit<ZodNamespace, 'config'>, {
   get(_target, prop) {
     if (prop === 'config') {
       return undefined

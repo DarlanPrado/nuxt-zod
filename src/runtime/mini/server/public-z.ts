@@ -1,7 +1,8 @@
-import * as zRuntime from 'zod/mini'
 import { getNuxtZodServerNamespace } from './zod-provider'
 
-export const z: Omit<typeof zRuntime, 'config'> = new Proxy({} as Omit<typeof zRuntime, 'config'>, {
+type ZodNamespace = typeof import('zod/mini')
+
+export const z: Omit<ZodNamespace, 'config'> = new Proxy({} as Omit<ZodNamespace, 'config'>, {
   get(_target, prop) {
     if (prop === 'config') {
       return undefined
