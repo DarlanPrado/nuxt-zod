@@ -5,6 +5,6 @@ export default defineEventHandler(() => {
   const message = parsed.success
     ? 'no-error'
     : parsed.error.issues[0]?.message ?? 'no-message'
-  const configHidden = typeof z.config === 'undefined'
+  const configHidden = !('config' in z) && !Object.keys(z).includes('config')
   return { message, configHidden }
 })

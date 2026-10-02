@@ -1,5 +1,6 @@
 <template>
   <div>
+    <div>{{ $zodConsumerResult }}</div>
     <div id="app-custom-error">
       {{ appCustomError }}
     </div>
@@ -18,5 +19,5 @@ const appCustomError = parsed.success
   ? 'no-error'
   : parsed.error.issues[0]?.message ?? 'no-message'
 
-const configHidden = typeof z.config === 'undefined' ? 'config-hidden-ok' : 'config-exposed'
+const configHidden = !('config' in z) && !Object.keys(z).includes('config') ? 'config-hidden-ok' : 'config-exposed'
 </script>

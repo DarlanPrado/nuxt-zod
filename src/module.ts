@@ -163,6 +163,7 @@ export default defineNuxtModule<ModuleOptions>({
     const useZodComposable = resolveRuntimeEntry(zodRoot, 'composables', 'useZod')
     const appPluginPre = resolveRuntimeEntry(zodRoot, 'plugin-pre')
     const appPluginSeal = resolveRuntimeEntry(zodRoot, 'plugin-seal')
+    const serverZodProvider = resolveRuntimeEntry(zodRoot, 'server', 'zod-provider')
     const serverPublicZ = resolveRuntimeEntry(zodRoot, 'server', 'public-z')
     const serverUseZod = resolveRuntimeEntry(zodRoot, 'server/utils', 'useZod')
     const serverPlugin = resolveRuntimeEntry(zodRoot, 'server', 'plugin')
@@ -303,12 +304,16 @@ export default defineNuxtModule<ModuleOptions>({
       }
 
       // Explicit import alias: import { z } from '#nuxt-zod/server'
-      // Re-exports `z` from `zod/v3`, `zod/v4`, or `zod/mini` per `nuxtZod.zodVersion` (no extra provider shim).
-      // Mini uses namespace import + re-export (`export * as` is not reliably parsed in Nitro virtuals).
+      // Exposes the selected provider's public namespace and applies registration to its runtime.
       // Virtual source is plain JS (no `as const`) so Rollup can parse it without a TS plugin.
       nuxt.hook('nitro:config', (nitroConfig) => {
         nitroConfig.virtual ||= {}
-        const registerZodConfigExport = `export { registerInjectedZodConfig } from '${zodConfigModule}'`
+        const registerZodConfigExport = `import { registerInjectedZodConfig as registerConfig } from '${zodConfigModule}'
+import { getNuxtZodServerNamespace } from '${serverZodProvider}'
+export function registerInjectedZodConfig(config) {
+  registerConfig(config)
+  getNuxtZodServerNamespace()
+}`
         const publicZExport = `export { z } from '${serverPublicZ}'`
         nitroConfig.virtual['#nuxt-zod/server'] = [
           registerZodConfigExport,

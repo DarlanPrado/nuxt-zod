@@ -41,8 +41,8 @@ export function resolveAppZodNamespace<T extends object>(
   }
 
   const config = readZodConfig(nuxtApp)
+  applyZodConfigToNamespace(state.rawZ, config)
   if (!state.sealed || config !== state.lastConfig) {
-    applyZodConfigToNamespace(state.rawZ, config)
     state.publicZod = createPublicZodNamespace(state.rawZ)
     state.lastConfig = config
   }
@@ -66,24 +66,12 @@ export function sealAppZodRuntime(nuxtApp: object): void {
 export function createAppZodAccessProxy<T extends object>(
   nuxtApp: object,
 ): Omit<T, 'config'> {
-  return new Proxy({} as Omit<T, 'config'>, {
-    get(_target, prop) {
-      if (prop === 'config') {
-        return undefined
-      }
-      const namespace = resolveAppZodNamespace<T>(nuxtApp)
-      const value = Reflect.get(namespace, prop, namespace)
-      if (typeof value === 'function') {
-        return value.bind(namespace)
-      }
-      return value
-    },
-    has(_target, prop) {
-      if (prop === 'config') {
-        return false
-      }
-      const namespace = resolveAppZodNamespace<T>(nuxtApp)
-      return Reflect.has(namespace, prop)
-    },
-  })
+  const state = appStates.get(nuxtApp) as AppZodRuntimeState<T> | undefined
+  if (!state) {
+    throw new Error('[nuxt-zod] App Zod runtime is not initialized yet.')
+  }
+  return createPublicZodNamespace(
+    state.rawZ,
+    () => resolveAppZodNamespace<T>(nuxtApp),
+  )
 }

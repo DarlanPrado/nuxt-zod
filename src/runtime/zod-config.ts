@@ -13,8 +13,8 @@ export type ZodConfigIssue = {
 
 export type ZodConfigCustomError = (issue: ZodConfigIssue) => string | undefined
 
-/** Locale helpers are version-specific; keep a callable surface without importing Zod. */
-export type ZodConfigLocaleError = (...args: unknown[]) => unknown
+/** Both callbacks receive the issue fields shared by Zod 3 and Zod 4. */
+export type ZodConfigLocaleError = ZodConfigCustomError
 
 export type ZodConfigInput = {
   customError?: ZodConfigCustomError
@@ -82,29 +82,24 @@ export function applyZodConfigToNamespace(
   }
 }
 
-/**
- * Public Zod namespace without `config` (issue #38). Uses a get-only proxy so non-configurable
- * `config` on the target does not break trap invariants.
- */
-export function createPublicZodNamespace<T extends object>(zodNamespace: T): Omit<T, 'config'> {
-  return new Proxy(zodNamespace, {
-    get(target, prop, receiver) {
-      if (prop === 'config') {
-        return undefined
-      }
-      const value = Reflect.get(target, prop, receiver)
-      if (typeof value === 'function') {
-        return value.bind(target)
-      }
-      return value
-    },
-    has(target, prop) {
-      if (prop === 'config') {
-        return false
-      }
-      return Reflect.has(target, prop)
-    },
-  }) as Omit<T, 'config'>
+/** Public object with live namespace values and no `config` property. */
+export function createPublicZodNamespace<T extends object>(
+  zodNamespace: T,
+  beforeAccess?: () => void,
+): Omit<T, 'config'> {
+  const publicNamespace = {} as Omit<T, 'config'>
+  for (const key of Reflect.ownKeys(zodNamespace)) {
+    if (key === 'config') continue
+    Object.defineProperty(publicNamespace, key, {
+      enumerable: Object.getOwnPropertyDescriptor(zodNamespace, key)?.enumerable,
+      configurable: true,
+      get() {
+        beforeAccess?.()
+        return Reflect.get(zodNamespace, key)
+      },
+    })
+  }
+  return publicNamespace
 }
 
 /** @deprecated Use {@link createPublicZodNamespace}. */
