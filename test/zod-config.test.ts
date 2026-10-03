@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url'
 import { describe, it, expect } from 'vitest'
 import { setup, $fetch, fetch as testFetch } from '@nuxt/test-utils/e2e'
-import { createPublicZodNamespace } from '../src/runtime/zod-config'
+import { createPublicZodNamespace, isZodConfigReadingMethod } from '../src/runtime/zod-config'
 import {
   prepareAppZodConfig,
   prepareNitroZodConfig,
@@ -30,6 +30,13 @@ describe('zod-config helpers', () => {
     expect(publicNs.string().safeParse(1).success).toBe(false)
   })
 
+  it('treats spa and codec methods as config-reading validation entry points', () => {
+    expect(isZodConfigReadingMethod('spa')).toBe(true)
+    expect(isZodConfigReadingMethod('safeEncodeAsync')).toBe(true)
+    expect(isZodConfigReadingMethod('decode')).toBe(true)
+    expect(isZodConfigReadingMethod('toString')).toBe(false)
+  })
+
   it('re-prepares before parse on schemas from non-configurable factories', async () => {
     resetZodConfigContextState()
     const { z } = await import('zod/v4')
@@ -44,6 +51,37 @@ describe('zod-config helpers', () => {
     prepareNitroZodConfig(z, { customError: () => 'nitro-pollution' })
     const message = storedSchema.safeParse(1).error?.issues[0]?.message
     expect(message).toBe('app-stored-schema')
+  })
+
+  it('re-prepares before spa on a stored schema after global swap', async () => {
+    resetZodConfigContextState()
+    const { z } = await import('zod/v4')
+    const publicNs = createPublicZodNamespace(z, {
+      beforeParse: () => prepareAppZodConfig(z, { customError: () => 'spa-app' }),
+    })
+    const storedSchema = publicNs.string()
+    prepareNitroZodConfig(z, { customError: () => 'spa-nitro' })
+    const spa = (storedSchema as { spa?: (input: unknown) => Promise<{ success: boolean, error?: { issues: Array<{ message?: string }> } }> }).spa
+    expect(spa).toBeTypeOf('function')
+    const result = await spa?.(123)
+    expect(result?.success).toBe(false)
+    expect(result?.error?.issues[0]?.message).toBe('spa-app')
+  })
+
+  it('keeps app customError through async refinement after mid-parse swap', async () => {
+    resetZodConfigContextState()
+    const { z } = await import('zod/v4')
+    const publicNs = createPublicZodNamespace(z, {
+      beforeParse: () => prepareAppZodConfig(z, { customError: () => 'async-app' }),
+    })
+    const schema = publicNs.string().refine(async () => {
+      prepareNitroZodConfig(z, { customError: () => 'async-nitro' })
+      await new Promise<void>(resolve => setTimeout(resolve, 5))
+      return false
+    })
+    const result = await schema.safeParseAsync('x')
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0]?.message).toBe('async-app')
   })
 
   it('switches app and nitro config without leaking customError', async () => {
@@ -105,9 +143,13 @@ describe('nuxt-zod $zodConfig fixture', async () => {
     const result = await $fetch('/api/virtual-z-import', { method: 'POST' }) as {
       message: string
       configHidden: boolean
+      publicKeyCount: number
+      stringDescriptorType: string
     }
     expect(result.message).toBe('injected-nitro-zod-config')
     expect(result.configHidden).toBe(true)
+    expect(result.publicKeyCount).toBeGreaterThan(0)
+    expect(result.stringDescriptorType).toBe('function')
   })
 
   it('applies nitro config before parse on module-load schema (virtual-z-registration)', async () => {
@@ -130,7 +172,6 @@ describe('nuxt-zod $zodConfig fixture', async () => {
 
   it('re-prepares nitro config in event.validate after await under concurrent SSR', async () => {
     const htmlPromise = $fetch('/zod-config-schema-before-await')
-    await new Promise<void>(resolve => setTimeout(resolve, 10))
     const validatePromise = testFetch('/api/validate-concurrency-yield', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

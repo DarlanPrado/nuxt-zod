@@ -15,6 +15,43 @@ export function descriptorForEmptyProxyTarget(
  * Forwards configurable keys to a prepared public namespace while preserving
  * non-configurable invariants on the real Zod target (`$brand`, `_zod`, …).
  */
+export function createLazyPublicZExport<T extends object>(
+  resolvePublicNamespace: () => Omit<T, 'config'>,
+): Omit<T, 'config'> {
+  return new Proxy({} as Omit<T, 'config'>, {
+    get(_target, prop) {
+      if (prop === 'config') {
+        return undefined
+      }
+      const namespace = resolvePublicNamespace()
+      return Reflect.get(namespace as object, prop, namespace as object)
+    },
+    has(_target, prop) {
+      if (prop === 'config') {
+        return false
+      }
+      return Reflect.has(resolvePublicNamespace() as object, prop)
+    },
+    ownKeys() {
+      return Reflect.ownKeys(resolvePublicNamespace() as object).filter(key => key !== 'config')
+    },
+    getOwnPropertyDescriptor(_target, prop) {
+      if (prop === 'config') {
+        return undefined
+      }
+      const namespace = resolvePublicNamespace() as object
+      try {
+        return descriptorForEmptyProxyTarget(
+          Reflect.getOwnPropertyDescriptor(namespace, prop),
+        )
+      }
+      catch {
+        return undefined
+      }
+    },
+  })
+}
+
 export function createForwardingZodProxy<T extends object>(
   target: T,
   resolvePublicNamespace: () => Omit<T, 'config'>,

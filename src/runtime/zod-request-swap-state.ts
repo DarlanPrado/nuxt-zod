@@ -1,6 +1,8 @@
 export type ZodRequestSwapState = {
   lastAppConfig?: Record<string, unknown>
   lastNitroConfig?: Record<string, unknown>
+  /** Fresh `runtimeConfig.nuxtZod.errors` for this Nitro request (not module-setup snapshot). */
+  nitroErrorMessages?: Record<string, unknown>
 }
 
 const ZOD_SWAP_CONTEXT_KEY = '__nuxtZodSwapState'

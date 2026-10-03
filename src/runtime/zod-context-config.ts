@@ -4,6 +4,7 @@
  * entering each side and immediately before parse (see `createPublicZodNamespace`).
  */
 import { readNitroInjectedZodConfig } from './nitro-zod-config'
+import { reapplyActiveZodParseGuards } from './zod-parse-guards'
 import { getZodRequestSwapState } from './zod-request-swap-state'
 
 type ZodNamespaceWithConfig = {
@@ -131,6 +132,11 @@ export function registerNitroZodModuleErrorMessages(
   reapplyNitroModuleErrorMessages = reapply
 }
 
+/** Module-setup snapshot; prefer per-request `runtimeConfig.nuxtZod.errors` when present. */
+export function getNitroZodModuleErrorMessages(): Record<string, unknown> | undefined {
+  return nitroModuleErrorMessages
+}
+
 function restoreAppEffectiveBaseline(zodNamespace: unknown): void {
   if (appZodEffectiveBaseline && Object.keys(appZodEffectiveBaseline).length > 0) {
     writeConfigState(zodNamespace, { ...appZodEffectiveBaseline })
@@ -153,6 +159,7 @@ export function prepareAppZodConfig(
   if (config) {
     applyConfigObject(zodNamespace, config)
   }
+  reapplyActiveZodParseGuards()
 }
 
 export function prepareNitroZodConfig(
@@ -160,10 +167,12 @@ export function prepareNitroZodConfig(
   explicitConfig: Record<string, unknown> | undefined,
   requestContext?: object,
 ): void {
-  void getZodRequestSwapState(requestContext)
+  const swapState = getZodRequestSwapState(requestContext)
   writeConfigState(zodNamespace, {})
-  if (nitroModuleErrorMessages && reapplyNitroModuleErrorMessages) {
-    reapplyNitroModuleErrorMessages(nitroModuleErrorMessages)
+  const requestErrorMessages = swapState.nitroErrorMessages
+  const errorMessages = requestErrorMessages ?? nitroModuleErrorMessages
+  if (errorMessages && reapplyNitroModuleErrorMessages) {
+    reapplyNitroModuleErrorMessages(errorMessages)
   }
   else {
     restoreNitroEffectiveBaseline(zodNamespace)
@@ -172,6 +181,7 @@ export function prepareNitroZodConfig(
   if (resolvedConfig) {
     applyConfigObject(zodNamespace, resolvedConfig)
   }
+  reapplyActiveZodParseGuards()
 }
 
 /** Vitest: reset module state between unit tests. */

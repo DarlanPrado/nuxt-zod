@@ -2,6 +2,7 @@ import { createError, getQuery, getRouterParams, readBody } from 'h3'
 import type { H3Event } from 'h3'
 import { useRuntimeConfig } from 'nitropack/runtime'
 import { prepareNitroZodConfig } from '../../../zod-config'
+import { maybeYieldAfterNuxtZodReadBody } from '../../../zod-validation-yield'
 import { safeParseAsync, type AnyZodSchema } from '../../zod-adapter'
 import { z } from '../../zod-nitro'
 import type {
@@ -82,6 +83,7 @@ export async function runEventValidation<T extends ValidationSchemaInput>(
 
   if (schema.body) {
     const body = await readBody(event)
+    await maybeYieldAfterNuxtZodReadBody(event)
     prepareNitroZodConfig(z, undefined, event.context)
     const result = await safeParseAsync(schema.body as AnyZodSchema, body)
     if (!result.success) {

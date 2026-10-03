@@ -2,10 +2,32 @@
  * Public Zod namespace helpers (no `zod/v4` import — shared across v3/v4/mini trees).
  */
 import { descriptorForEmptyProxyTarget } from './proxy-descriptor'
+import { invokeWithActiveZodParseGuard } from './zod-parse-guards'
 
 export { prepareAppZodConfig, prepareNitroZodConfig } from './zod-context-config'
 
-const PARSE_METHODS = new Set(['parse', 'safeParse', 'parseAsync', 'safeParseAsync'])
+const ZOD_CONFIG_READING_METHODS = new Set([
+  'spa',
+  'parse',
+  'safeParse',
+  'parseAsync',
+  'safeParseAsync',
+  'encode',
+  'decode',
+  'safeEncode',
+  'safeDecode',
+  'encodeAsync',
+  'decodeAsync',
+  'safeEncodeAsync',
+  'safeDecodeAsync',
+  'validate',
+  'validateAsync',
+])
+
+/** Zod entry points that read global config when validating or encoding. */
+export function isZodConfigReadingMethod(prop: string): boolean {
+  return ZOD_CONFIG_READING_METHODS.has(prop)
+}
 
 function wrapParseMethods(value: unknown, beforeParse: () => void): unknown {
   if (!value || typeof value !== 'object') {
@@ -17,15 +39,15 @@ function wrapParseMethods(value: unknown, beforeParse: () => void): unknown {
   }
   return new Proxy(value as object, {
     get(target, prop, receiver) {
-      if (PARSE_METHODS.has(String(prop))) {
+      if (isZodConfigReadingMethod(String(prop))) {
         const method = Reflect.get(target, prop, receiver)
         if (typeof method !== 'function') {
           return method
         }
-        return (...args: unknown[]) => {
-          beforeParse()
-          return method.apply(target, args)
-        }
+        return (...args: unknown[]) => invokeWithActiveZodParseGuard(
+          beforeParse,
+          () => method.apply(target, args),
+        )
       }
       const next = Reflect.get(target, prop, receiver)
       const descriptor = Reflect.getOwnPropertyDescriptor(target, prop)
