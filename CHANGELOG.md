@@ -1,3 +1,25 @@
+## v1.6.2
+
+[compare changes](https://github.com/DarlanPrado/nuxt-zod/compare/v1.6.1...v1.6.2)
+
+### 🩹 Fixes
+
+- **nitro:** Emit useZodSchemas template as .ts for server types ([9bbd561](https://github.com/DarlanPrado/nuxt-zod/commit/9bbd561))
+- **playground:** Point validate page at schemas-session-test API ([64d7632](https://github.com/DarlanPrado/nuxt-zod/commit/64d7632))
+- **nitro:** Register H3 validate types in Nitro tsconfig ([d02f992](https://github.com/DarlanPrado/nuxt-zod/commit/d02f992))
+
+### ✅ Tests
+
+- **playground:** Restore validate-test route for Nitro event.validate types ([e17901b](https://github.com/DarlanPrado/nuxt-zod/commit/e17901b))
+
+### 🤖 CI
+
+- **types:** Disable checkout credential persistence ([66d7e3e](https://github.com/DarlanPrado/nuxt-zod/commit/66d7e3e))
+
+### ❤️ Contributors
+
+- Cursor Agent ([@cursoragent](https://github.com/cursoragent))
+
 ## v1.6.1
 
 [compare changes](https://github.com/DarlanPrado/nuxt-zod/compare/v1.6.0...v1.6.1)
