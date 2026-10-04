@@ -8,7 +8,8 @@
         <code>event.validate()</code>
       </h1>
       <p>
-        Test Nitro request validation: edit JSON body and query, then send success or intentional failure.
+        Test Nitro request validation with inline schemas and with <code>useZodSchemas()</code> from
+        <code>shared/schemas/</code>.
       </p>
       <NuxtLink
         class="back"
@@ -19,7 +20,9 @@
     </header>
 
     <section class="card">
-      <h2>Request</h2>
+      <h2>
+        Inline <code>useZod()</code> schemas
+      </h2>
       <p class="hint">
         Schema: <code>body.name</code> (string, min 1) · <code>query.page</code> (optional number, coerced)
       </p>
@@ -66,7 +69,52 @@
     </section>
 
     <section class="card">
-      <h2>Response</h2>
+      <h2>
+        Shared registry (<code>useZodSchemas</code>)
+      </h2>
+      <p class="hint">
+        <code>shared/schemas/session.ts</code> → <code>session.login</code> (email + password min 8)
+      </p>
+      <label class="block">
+        JSON body
+        <textarea
+          v-model="sessionBodyJson"
+          rows="6"
+          spellcheck="false"
+        />
+      </label>
+      <div class="actions">
+        <button
+          type="button"
+          @click="applySessionPreset('ok')"
+        >
+          Preset: valid login
+        </button>
+        <button
+          type="button"
+          @click="applySessionPreset('bad')"
+        >
+          Preset: short password
+        </button>
+        <button
+          type="button"
+          class="primary"
+          @click="sendSession"
+        >
+          POST /api/schemas-session-test
+        </button>
+      </div>
+      <p
+        v-if="sessionStatusLabel"
+        class="status"
+      >
+        HTTP {{ sessionStatusLabel }}
+      </p>
+      <pre class="result">{{ sessionDisplay }}</pre>
+    </section>
+
+    <section class="card">
+      <h2>Response (inline route)</h2>
       <p
         v-if="statusLabel"
         class="status"
@@ -81,6 +129,18 @@
 <script setup lang="ts">
 const queryString = ref('page=2')
 const bodyJson = ref(JSON.stringify({ name: 'nuxt-zod' }, null, 2))
+const sessionBodyJson = ref(JSON.stringify({
+  email: 'you@example.com',
+  password: 'secret123',
+}, null, 2))
+const sessionStatusLabel = ref('')
+const sessionLastJson = ref<Record<string, unknown> | null>(null)
+const sessionLastText = ref('')
+const sessionDisplay = computed(() => {
+  if (sessionLastJson.value)
+    return JSON.stringify(sessionLastJson.value, null, 2)
+  return sessionLastText.value
+})
 
 const statusLabel = ref('')
 const lastJson = ref<Record<string, unknown> | null>(null)
@@ -108,6 +168,60 @@ function buildQueryPart() {
   if (!q)
     return ''
   return q.startsWith('?') ? q : `?${q}`
+}
+
+function applySessionPreset(kind: 'ok' | 'bad') {
+  if (kind === 'ok') {
+    sessionBodyJson.value = JSON.stringify({
+      email: 'you@example.com',
+      password: 'secret123',
+    }, null, 2)
+  }
+  else {
+    sessionBodyJson.value = JSON.stringify({
+      email: 'you@example.com',
+      password: 'short',
+    }, null, 2)
+  }
+}
+
+async function sendSession() {
+  sessionStatusLabel.value = ''
+  sessionLastJson.value = null
+  sessionLastText.value = ''
+  let body: unknown
+  try {
+    body = JSON.parse(sessionBodyJson.value)
+  }
+  catch {
+    sessionLastText.value = 'Invalid JSON in body field'
+    return
+  }
+  try {
+    const res = await $fetch<Record<string, unknown>>('/api/schemas-session-test', {
+      method: 'POST',
+      body: body as Record<string, unknown>,
+    })
+    sessionLastJson.value = { success: true, data: res }
+    sessionStatusLabel.value = '200'
+  }
+  catch (e: unknown) {
+    const err = e as {
+      statusCode?: number
+      data?: { data?: unknown, message?: string, statusMessage?: string }
+      message?: string
+    }
+    sessionStatusLabel.value = String(err.statusCode ?? 'error')
+    if (err.data && typeof err.data === 'object') {
+      const detail = 'data' in err.data && err.data.data !== undefined
+        ? err.data.data
+        : err.data
+      sessionLastJson.value = { success: false, error: detail }
+    }
+    else {
+      sessionLastText.value = err.message ?? String(e)
+    }
+  }
 }
 
 async function send() {

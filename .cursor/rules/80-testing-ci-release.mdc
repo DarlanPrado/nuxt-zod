@@ -34,8 +34,9 @@ alwaysApply: false
   - **`lint`**
   - **`test`**: matriz Nuxt × Zod (3/4) — só suites Classic/dist (`npm run test`)
   - **`test-mini`**: matriz Nuxt 3/4 com **Zod 4** fixo — só Mini (`npm run test:mini`)
+  - **`types`**: `npm run test:types` (raiz + playground app + Nitro `server/tsconfig.json`)
 - Alterações em CI **SHOULD** manter Node/Corepack/nypm alinhados ao que já existe.
 
 ## Lacunas conhecidas
 
-- CI **não** executa `test:types` hoje; mudanças que só quebrariam no `vue-tsc` **SHOULD** rodar `test:types` localmente até o CI ser estendido.
+- O job **`types`** não varia matriz Nuxt/Zod; mudanças sensíveis à versão **SHOULD** rodar `test:types` localmente com pins adicionais se necessário.

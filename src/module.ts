@@ -207,7 +207,8 @@ export default defineNuxtModule<ModuleOptions>({
       }
 
       const zodSchemasTemplate = addTemplate({
-        filename: 'nuxt-zod-schemas.mts',
+        // `.ts` so Nitro's extension-less auto-import path resolves under server tsconfig (see issue #45).
+        filename: 'nuxt-zod-schemas.ts',
         write: true,
         getContents: () => {
           const entries = discoverSchemaFilesFromLayers(schemasRootsAbsolute)
@@ -319,7 +320,7 @@ export default defineNuxtModule<ModuleOptions>({
         zodVersion,
         serverEnabled: options.server !== false,
       }),
-    })
+    }, { nuxt: true, nitro: true })
 
     // Subpaths only: avoid `optimizeDeps.include: ['zod']`, which pre-bundles the package root
     // and (on older Zod) drags every `locales/*` into the analyzed client graph.
