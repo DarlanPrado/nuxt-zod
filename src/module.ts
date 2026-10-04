@@ -207,7 +207,8 @@ export default defineNuxtModule<ModuleOptions>({
       }
 
       const zodSchemasTemplate = addTemplate({
-        filename: 'nuxt-zod-schemas.mts',
+        // `.ts` so Nitro's extension-less auto-import path resolves under server tsconfig (see issue #45).
+        filename: 'nuxt-zod-schemas.ts',
         write: true,
         getContents: () => {
           const entries = discoverSchemaFilesFromLayers(schemasRootsAbsolute)
