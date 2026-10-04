@@ -5,10 +5,11 @@
         nuxt-zod playground
       </p>
       <h1>
-        <code>event.validate()</code>
+        <code>useZodSchemas()</code>
       </h1>
       <p>
-        Test Nitro request validation: edit JSON body and query, then send success or intentional failure.
+        Exercise the generated schema registry on Nitro via
+        <code>shared/schemas/session.ts</code> (no <code>event.validate</code> on this route).
       </p>
       <NuxtLink
         class="back"
@@ -19,48 +20,19 @@
     </header>
 
     <section class="card">
-      <h2>Request</h2>
+      <h2>Server registry</h2>
       <p class="hint">
-        Schema: <code>body.name</code> (string, min 1) · <code>query.page</code> (optional number, coerced)
+        <code>POST /api/schemas-session-test</code> calls <code>useZodSchemas()</code> and returns
+        registered keys (expects <code>session</code> from the shared schema file).
       </p>
 
-      <label class="block">
-        Query string (appended to URL, e.g. <code>?page=2</code>)
-        <input
-          v-model="queryString"
-          type="text"
-          placeholder="?page=2 or page=2"
-        >
-      </label>
-
-      <label class="block">
-        JSON body
-        <textarea
-          v-model="bodyJson"
-          rows="8"
-          spellcheck="false"
-        />
-      </label>
-
       <div class="actions">
-        <button
-          type="button"
-          @click="applyPreset('ok')"
-        >
-          Preset: valid
-        </button>
-        <button
-          type="button"
-          @click="applyPreset('bad')"
-        >
-          Preset: invalid name
-        </button>
         <button
           type="button"
           class="primary"
           @click="send"
         >
-          POST /api/validate-test
+          POST /api/schemas-session-test
         </button>
       </div>
     </section>
@@ -79,9 +51,6 @@
 </template>
 
 <script setup lang="ts">
-const queryString = ref('page=2')
-const bodyJson = ref(JSON.stringify({ name: 'nuxt-zod' }, null, 2))
-
 const statusLabel = ref('')
 const lastJson = ref<Record<string, unknown> | null>(null)
 const lastText = ref('')
@@ -92,41 +61,13 @@ const display = computed(() => {
   return lastText.value
 })
 
-function applyPreset(kind: 'ok' | 'bad') {
-  if (kind === 'ok') {
-    bodyJson.value = JSON.stringify({ name: 'nuxt-zod' }, null, 2)
-    queryString.value = 'page=2'
-  }
-  else {
-    bodyJson.value = JSON.stringify({ name: '' }, null, 2)
-    queryString.value = 'page=not-a-number'
-  }
-}
-
-function buildQueryPart() {
-  const q = queryString.value.trim()
-  if (!q)
-    return ''
-  return q.startsWith('?') ? q : `?${q}`
-}
-
 async function send() {
   statusLabel.value = ''
   lastJson.value = null
   lastText.value = ''
-  let body: unknown
   try {
-    body = JSON.parse(bodyJson.value)
-  }
-  catch {
-    lastText.value = 'Invalid JSON in body field'
-    return
-  }
-  const path = `/api/validate-test${buildQueryPart()}`
-  try {
-    const res = await $fetch<Record<string, unknown>>(path, {
+    const res = await $fetch<Record<string, unknown>>('/api/schemas-session-test', {
       method: 'POST',
-      body: body as Record<string, unknown>,
     })
     lastJson.value = { success: true, data: res }
     statusLabel.value = '200'
@@ -206,28 +147,6 @@ async function send() {
   margin: 0 0 0.75rem;
   font-size: 0.88rem;
   color: #475569;
-}
-.block {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  font-size: 0.9rem;
-  font-weight: 600;
-  margin-bottom: 0.75rem;
-}
-input,
-textarea {
-  font: inherit;
-  font-weight: 400;
-  border: 1px solid #94a3b8;
-  border-radius: 10px;
-  padding: 0.5rem 0.6rem;
-  width: 100%;
-  box-sizing: border-box;
-}
-textarea {
-  font-family: ui-monospace, monospace;
-  font-size: 0.85rem;
 }
 .actions {
   display: flex;
