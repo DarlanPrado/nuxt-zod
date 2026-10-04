@@ -12,6 +12,8 @@
  */
 import { z as zV3Permalink } from 'zod/v3'
 import { safeParseAsync as safeParseAsyncV4Core, type $ZodType } from 'zod/v4/core'
+import { z as zApp } from './zod-app'
+import { z as zNitro } from './zod-nitro'
 import { z as zProvider } from 'zod/v4'
 
 /** Schema aceite em `event.validate()` neste modo: instância Zod 3 **ou** Zod 4. */
@@ -62,6 +64,8 @@ function asString(value: unknown): string | undefined {
 export function applyPeerZodErrorMaps(customError: CustomErrorFn): void {
   const targets: ZodWithErrorHooks[] = [
     zProvider as unknown as ZodWithErrorHooks,
+    zNitro as unknown as ZodWithErrorHooks,
+    zApp as unknown as ZodWithErrorHooks,
     zV3Permalink as unknown as ZodWithErrorHooks,
   ]
 

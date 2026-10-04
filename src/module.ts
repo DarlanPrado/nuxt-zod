@@ -42,6 +42,10 @@ function resolveRuntimeEntry(zodRoot: string, ...pathSegments: string[]) {
 export type {
   ZodErrorMessages,
 } from './runtime/v3/zod-errors'
+export type { ZodConfigInput as ZodV3ConfigInput } from './runtime/v3/zod-config-types'
+export type { ZodConfigInput as ZodV4ConfigInput } from './runtime/v4/zod-config-types'
+export type { ZodConfigInput as ZodMiniConfigInput } from './runtime/mini/zod-config-types'
+export type { ZodConfigInput } from './runtime/v4/zod-config-types'
 export type {
   AnyZodSchemaPublic,
   ValidationSchema,
@@ -112,6 +116,11 @@ export interface ModuleOptions {
    * @default 'v4' (auto, with warning)
    */
   zodVersion?: 'v3' | 'v4' | 'mini'
+  /**
+   * Global Zod error message map (also available via `app.config` → `zod.errors`).
+   * Serialized into Nitro `runtimeConfig.nuxtZod.errors`.
+   */
+  errors?: ZodErrorMessages
 }
 
 export default defineNuxtModule<ModuleOptions>({
@@ -155,9 +164,13 @@ export default defineNuxtModule<ModuleOptions>({
         ? 'zod/v4'
         : 'zod/v3'
     const useZodComposable = resolveRuntimeEntry(zodRoot, 'composables', 'useZod')
-    const appPlugin = resolveRuntimeEntry(zodRoot, 'plugin')
+    const appPluginPre = resolveRuntimeEntry(zodRoot, 'plugin-pre')
+    const appPluginSeal = resolveRuntimeEntry(zodRoot, 'plugin-seal')
+    const serverPublicZ = resolveRuntimeEntry(zodRoot, 'server', 'public-z')
     const serverUseZod = resolveRuntimeEntry(zodRoot, 'server/utils', 'useZod')
     const serverPlugin = resolveRuntimeEntry(zodRoot, 'server', 'plugin')
+    const serverPluginRequestState = resolveRuntimeEntry(zodRoot, 'server', 'plugin-request-state')
+    const nitroZodConfigModule = resolveRuntimeEntry(resolve('./runtime'), 'nitro-zod-config')
     const appPluginErrors = resolveRuntimeEntry(zodRoot, 'plugin-errors')
     const serverPluginErrors = resolveRuntimeEntry(zodRoot, 'server', 'plugin-errors')
 
@@ -186,8 +199,10 @@ export default defineNuxtModule<ModuleOptions>({
         'app/app.config.mjs',
       ].some(file => existsSync(join(root, file)))
     })
+    const moduleErrorMessages = options.errors
     const hasGlobalZodErrorMessages
       = !!(appConfigErrorMessages && Object.keys(appConfigErrorMessages).length > 0)
+        || !!(moduleErrorMessages && Object.keys(moduleErrorMessages).length > 0)
         || hasAppConfigFile
 
     const schemasFeatureEnabled = options.schemas?.enabled !== false
@@ -242,8 +257,9 @@ export default defineNuxtModule<ModuleOptions>({
 
     // ─── App-side (client + SSR) ──────────────────────────────────────────
     if (options.client !== false) {
-      // Provides $zod on the NuxtApp instance
-      addPlugin(appPlugin)
+      // Lazy $zod (pre) + seal after consumer plugins provide $zodConfig (post)
+      addPlugin(appPluginPre)
+      addPlugin(appPluginSeal, { append: true })
       if (hasGlobalZodErrorMessages) {
         // Register error-map bootstrap only when app.config declares zod.errors.
         addPlugin(appPluginErrors)
@@ -259,6 +275,7 @@ export default defineNuxtModule<ModuleOptions>({
 
     // ─── Server-side (Nitro) ──────────────────────────────────────────────
     if (options.server !== false) {
+      addServerPlugin(serverPluginRequestState)
       // event.validate() on H3Event
       addServerPlugin(serverPlugin)
       if (hasGlobalZodErrorMessages) {
@@ -289,7 +306,7 @@ export default defineNuxtModule<ModuleOptions>({
           message: options.validation?.message ?? 'Validation failed',
           includeIssues: options.validation?.includeIssues !== false,
         },
-        errors: appConfigErrorMessages ?? currentNuxtZodRuntimeConfig.errors,
+        errors: appConfigErrorMessages ?? moduleErrorMessages ?? currentNuxtZodRuntimeConfig.errors,
       }
 
       // Explicit import alias: import { z } from '#nuxt-zod/server'
@@ -298,16 +315,13 @@ export default defineNuxtModule<ModuleOptions>({
       // Virtual source is plain JS (no `as const`) so Rollup can parse it without a TS plugin.
       nuxt.hook('nitro:config', (nitroConfig) => {
         nitroConfig.virtual ||= {}
-        nitroConfig.virtual['#nuxt-zod/server'] = zodVersion === 'mini'
-          ? [
-              `import * as z from '${zodSpecifier}'`,
-              'export { z }',
-              `export const nuxtZodProviderId = '${zodVersion}'`,
-            ].join('\n')
-          : [
-              `export { z } from '${zodSpecifier}'`,
-              `export const nuxtZodProviderId = '${zodVersion}'`,
-            ].join('\n')
+        const registerZodConfigExport = `export { registerInjectedZodConfig } from '${nitroZodConfigModule}'`
+        const publicZExport = `export { z } from '${serverPublicZ}'`
+        nitroConfig.virtual['#nuxt-zod/server'] = [
+          registerZodConfigExport,
+          publicZExport,
+          `export const nuxtZodProviderId = '${zodVersion}'`,
+        ].join('\n')
       })
     }
 

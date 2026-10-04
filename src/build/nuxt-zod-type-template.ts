@@ -19,10 +19,14 @@ export function getNuxtZodTypeTemplateContents(options: NuxtZodTypeTemplateOptio
   const zImport = isMini
     ? `import type * as z from '${zodSpecifier}'`
     : `import type { z } from '${zodSpecifier}'`
-  // Types may use `export * as`; Nitro virtual JS uses import + re-export instead.
-  const zServerExport = isMini
-    ? `export * as z from '${zodSpecifier}'`
-    : `export { z } from '${zodSpecifier}'`
+
+  const zodConfigInputType = zodVersion === 'v3'
+    ? `{
+  customError?: (issue: import('zod/v3').ZodIssue) => string | undefined
+}`
+    : 'NonNullable<Parameters<typeof z.config>[0]>'
+
+  const publicZodType = 'Omit<typeof z, \'config\'>'
 
   const nuxtZodImports = serverEnabled
     ? `import type {
@@ -52,21 +56,29 @@ declare module 'h3' {
 ${zImport}
 ${nuxtZodImports}
 
+type ZodConfigInput = ${zodConfigInputType}
+
 declare module '#app' {
   interface NuxtApp {
-    $zod: typeof z
+    $zod: ${publicZodType}
+    /**
+     * Set by consumer plugins via \`provide: { zodConfig }\` (available after the plugin setup returns).
+     * Not visible to \`useZod()\` in the same plugin body before return; use a separate plugin or Nitro \`registerInjectedZodConfig\`.
+     */
+    $zodConfig?: ZodConfigInput
   }
 }
 
 declare module 'vue' {
   interface ComponentCustomProperties {
-    $zod: typeof z
+    $zod: ${publicZodType}
   }
 }
 
 declare module '#nuxt-zod/server' {
-  ${zServerExport}
+  export const z: ${publicZodType}
   export const nuxtZodProviderId: '${zodVersion}'
+  export function registerInjectedZodConfig(config: ZodConfigInput): void
   export type { ValidationSchema, ValidationSchemaInput, ValidationOptions, InferValidated, NuxtZodRuntimeValidation } from 'nuxt-zod'
 }
 ${h3Augment}
