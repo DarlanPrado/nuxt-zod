@@ -10,7 +10,7 @@
       </p>
       <p class="subnav">
         <NuxtLink to="/validate">
-          Try <code>event.validate()</code> on Nitro
+          Try <code>useZodSchemas()</code> on Nitro
         </NuxtLink>
       </p>
     </header>

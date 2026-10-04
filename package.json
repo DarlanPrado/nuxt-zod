@@ -49,7 +49,7 @@
     "test": "vitest run test/basic.test.ts test/dist-module.test.ts test/nuxt-zod-type-template.test.ts test/zod-schemas-template.test.ts test/layer-directories.test.ts test/layers.test.ts",
     "test:mini": "vitest run test/mini.test.ts",
     "test:watch": "vitest watch test/basic.test.ts test/dist-module.test.ts test/nuxt-zod-type-template.test.ts test/zod-schemas-template.test.ts test/layer-directories.test.ts test/layers.test.ts",
-    "test:types": "vue-tsc --noEmit && cd playground && vue-tsc --noEmit"
+    "test:types": "npm run dev:prepare && vue-tsc --noEmit && cd playground && vue-tsc --noEmit && vue-tsc --noEmit -p server/tsconfig.json"
   },
   "dependencies": {
     "@nuxt/kit": "^4.4.2"

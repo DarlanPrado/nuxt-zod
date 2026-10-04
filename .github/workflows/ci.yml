@@ -132,3 +132,30 @@ jobs:
 
       - name: Test Mini
         run: npm run test:mini
+
+  types:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm i -g --force corepack@latest && corepack enable && corepack prepare pnpm@10 --activate
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-types
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: npx nypm@latest i
+
+      - name: Typecheck
+        run: npm run test:types
