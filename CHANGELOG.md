@@ -1,3 +1,7 @@
+## v1.6.1
+
+[compare changes](https://github.com/DarlanPrado/nuxt-zod/compare/v1.6.0...v1.6.1)
+
 ## v1.6.0
 
 [compare changes](https://github.com/DarlanPrado/nuxt-zod/compare/v1.5.0...v1.6.0)
