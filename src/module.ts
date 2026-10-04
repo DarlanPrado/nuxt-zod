@@ -320,7 +320,7 @@ export default defineNuxtModule<ModuleOptions>({
         zodVersion,
         serverEnabled: options.server !== false,
       }),
-    })
+    }, { nuxt: true, nitro: true })
 
     // Subpaths only: avoid `optimizeDeps.include: ['zod']`, which pre-bundles the package root
     // and (on older Zod) drags every `locales/*` into the analyzed client graph.
