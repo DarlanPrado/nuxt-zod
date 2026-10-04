@@ -1,5 +1,5 @@
 /**
- * Source for `addTypeTemplate({ filename: 'types/nuxt-zod.d.ts' })` in the module setup.
+ * Source for `addTypeTemplate({ filename: 'types/nuxt-zod.d.ts' }, { nuxt: true, nitro: true })`.
  * Keeps `module.ts` readable; version-specific bits are only `zodSpecifier` + `nuxtZodProviderId`.
  */
 export interface NuxtZodTypeTemplateOptions {
