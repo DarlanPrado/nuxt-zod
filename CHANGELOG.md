@@ -1,3 +1,27 @@
+## v1.6.0
+
+[compare changes](https://github.com/DarlanPrado/nuxt-zod/compare/v1.5.0...v1.6.0)
+
+### 🚀 Enhancements
+
+- Scan useZodSchemas across Nuxt layers ([936da85](https://github.com/DarlanPrado/nuxt-zod/commit/936da85))
+
+### 🩹 Fixes
+
+- Improve schema key uniqueness check in multi-layer discovery ([557e2ce](https://github.com/DarlanPrado/nuxt-zod/commit/557e2ce))
+
+### 📖 Documentation
+
+- Document Nuxt layers schema merge ([0e5c29f](https://github.com/DarlanPrado/nuxt-zod/commit/0e5c29f))
+
+### ✅ Tests
+
+- Cover multi-layer schema discovery ([28d255b](https://github.com/DarlanPrado/nuxt-zod/commit/28d255b))
+
+### ❤️ Contributors
+
+- DarlanPrado <darlandoprado2014@gmail.com>
+
 ## v1.5.0
 
 [compare changes](https://github.com/DarlanPrado/nuxt-zod/compare/v1.3.3...v1.5.0)
